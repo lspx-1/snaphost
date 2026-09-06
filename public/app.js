@@ -972,6 +972,15 @@ npx snaphost pull mein-projekt
 # Optional in einen bestimmten Zielordner:
 npx snaphost pull mein-projekt ./zielordner
 
+# Persistente Datenbank (/data) prüfen & SQLite-Tabellen anzeigen:
+npx snaphost data mein-projekt
+
+# Datenbank & Daten lokal herunterladen:
+npx snaphost data pull mein-projekt
+
+# Speicher zurücksetzen (leeren):
+npx snaphost data reset mein-projekt
+
 # App / Container anhalten (offline nehmen):
 npx snaphost stop mein-projekt
 
@@ -1009,6 +1018,7 @@ Im Projektverzeichnis kann optional eine \`deploy.json\` hinterlegt werden:
 ### Technische Vorgaben für Apps & Container:
 - **Port:** Node.js-Server lauschen auf \`process.env.PORT\` (Fallback: \`3000\`) und binden an \`0.0.0.0\`:
   \`const port = process.env.PORT || 3000; server.listen(port, '0.0.0.0');\`
+- **Persistente Datenbank / Speicher:** Der Ordner \`/data\` bzw. \`./data\` (und Umgebungsvariable \`process.env.DATA_DIR\`, \`process.env.DATABASE_PATH = /app/data/app.db\`) ist dauerhaft persistent gemountet. Alle Daten (z. B. SQLite-Tabellen oder JSON-Dateien) bleiben bei jedem Deploy und Rebuild erhalten. Keine Passwörter oder externe Datenbanken nötig!
 - **WebSockets:** Nutzen denselben HTTP-Server und Port wie die Web-App.
 - **Dateipfade:** In HTML/CSS stets relative Pfade verwenden (z. B. \`./app.js\`, nicht \`/app.js\`).
 - \`node_modules\` und \`.git\` werden von der CLI automatisch vom Upload ausgeschlossen.
@@ -1403,6 +1413,12 @@ window.openAppDetails = async function(appId, initialTab = 'overview') {
       downloadBtn.download = `${app.subdomain}-v${app.version || 1}.zip`;
     }
 
+    const dataDownloadBtn = document.getElementById('btn-data-download');
+    if (dataDownloadBtn) {
+      dataDownloadBtn.href = `/api/apps/${app.id}/data/download`;
+      dataDownloadBtn.download = `${app.subdomain}-data.zip`;
+    }
+
     // Populate Settings Tab Fields
     document.getElementById('settings-title').value = app.title || '';
     document.getElementById('settings-subdomain').value = app.subdomain || '';
@@ -1462,6 +1478,9 @@ function switchInspectorTab(targetKey) {
   } else if (targetId === 'tab-details-logs' && activeInspectorApp) {
     loadInspectorLogs(activeInspectorApp.id);
     startLogPolling();
+  } else if (targetId === 'tab-details-data' && activeInspectorApp) {
+    stopLogPolling();
+    loadAppData(activeInspectorApp.id);
   } else {
     stopLogPolling();
   }
@@ -1727,6 +1746,178 @@ document.getElementById('btn-details-logs-refresh').addEventListener('click', ()
 document.getElementById('btn-details-logs-copy').addEventListener('click', () => {
   const content = document.getElementById('details-logs-content').textContent;
   copyToClipboard(content, 'Logs kopiert');
+});
+
+// -------------------------------------------------------------
+// Inspector Data & Database Management
+// -------------------------------------------------------------
+window.loadAppData = async function(appId) {
+  if (!appId) return;
+  const sizeEl = document.getElementById('data-total-size');
+  const countEl = document.getElementById('data-file-count');
+  const statusEl = document.getElementById('data-sqlite-status');
+  const filesListEl = document.getElementById('data-files-list');
+  const sqliteCard = document.getElementById('data-sqlite-card');
+
+  try {
+    const res = await fetch(`/api/apps/${appId}/data`);
+    const data = await res.json();
+    if (!data.ok && !data.success) {
+      if (statusEl) statusEl.textContent = 'Fehler beim Laden';
+      return;
+    }
+
+    const st = data.storage;
+    const kb = (st.totalSizeBytes / 1024).toFixed(1);
+    if (sizeEl) sizeEl.textContent = st.totalSizeBytes < 1024 * 1024 ? `${kb} KB` : `${(st.totalSizeBytes / (1024 * 1024)).toFixed(2)} MB`;
+    if (countEl) countEl.textContent = `${st.fileCount} Datei${st.fileCount === 1 ? '' : 'en'}`;
+
+    // Render Files List
+    if (filesListEl) {
+      if (!st.files || st.files.length === 0) {
+        filesListEl.innerHTML = '<div class="text-subdued" style="font-size:0.85rem;padding:0.5rem 0;">Noch keine Dateien im <code>/data</code>-Verzeichnis abgelegt.</div>';
+      } else {
+        filesListEl.innerHTML = `
+          <table class="apps-table" style="font-size:0.8rem;margin:0;">
+            <thead>
+              <tr>
+                <th>Datei</th>
+                <th>Pfad</th>
+                <th>Größe</th>
+                <th>Zuletzt geändert</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${st.files.map(f => {
+                const sz = f.sizeBytes < 1024 ? `${f.sizeBytes} B` : (f.sizeBytes < 1024 * 1024 ? `${(f.sizeBytes / 1024).toFixed(1)} KB` : `${(f.sizeBytes / (1024 * 1024)).toFixed(2)} MB`);
+                const dt = new Date(f.mtime).toLocaleString('de-DE');
+                const badge = f.isSqlite ? '<span class="badge-tag node" style="margin-left:6px;font-size:0.65rem;">SQLite</span>' : (f.isJson ? '<span class="badge-tag static" style="margin-left:6px;font-size:0.65rem;">JSON</span>' : '');
+                return `
+                  <tr>
+                    <td class="font-mono"><strong>${escapeHtml(f.name)}</strong>${badge}</td>
+                    <td class="text-subdued font-mono">${escapeHtml(f.path)}</td>
+                    <td class="font-mono">${sz}</td>
+                    <td class="text-subdued">${dt}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+
+    // Render SQLite Database Explorer
+    if (st.sqlite && st.sqlite.hasDb) {
+      if (statusEl) {
+        const tCount = st.sqlite.tables?.length || 0;
+        statusEl.innerHTML = `<span class="status-dot running"></span> ${tCount} Tabelle${tCount === 1 ? '' : 'n'} (${escapeHtml(st.sqlite.file)})`;
+      }
+
+      if (sqliteCard) {
+        sqliteCard.classList.remove('hidden');
+        document.getElementById('data-sqlite-filename').textContent = `${st.sqlite.file} • ${st.sqlite.tables?.length || 0} Tabelle(n)`;
+        const pillsEl = document.getElementById('data-sqlite-table-pills');
+        if (pillsEl) {
+          if (!st.sqlite.tables || st.sqlite.tables.length === 0) {
+            pillsEl.innerHTML = '<span class="text-subdued" style="font-size:0.8rem;">Keine Tabellen angelegt</span>';
+            document.getElementById('data-sqlite-thead').innerHTML = '';
+            document.getElementById('data-sqlite-tbody').innerHTML = '<tr><td class="text-subdued" style="padding:1rem;">Die Datenbankdatei existiert, enthält aber noch keine Tabellen.</td></tr>';
+            document.getElementById('data-sqlite-pagination-info').textContent = '0 Tabellen';
+          } else {
+            pillsEl.innerHTML = st.sqlite.tables.map((t, idx) => `
+              <button type="button" class="btn btn-secondary btn-xs ${idx === 0 ? 'active' : ''}" id="btn-tbl-${escapeHtml(t.name)}" onclick="loadSqliteTable('${appId}', '${escapeHtml(st.sqlite.file)}', '${escapeHtml(t.name)}')">
+                ${escapeHtml(t.name)} (${t.rowCount})
+              </button>
+            `).join('');
+
+            // Load first table by default
+            loadSqliteTable(appId, st.sqlite.file, st.sqlite.tables[0].name);
+          }
+        }
+      }
+    } else {
+      if (statusEl) statusEl.textContent = 'Keine SQLite-DB';
+      if (sqliteCard) sqliteCard.classList.add('hidden');
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = 'Fehler beim Laden';
+  }
+};
+
+window.loadSqliteTable = async function(appId, file, tableName) {
+  if (!appId || !tableName) return;
+  document.querySelectorAll('#data-sqlite-table-pills button').forEach(b => {
+    b.classList.toggle('active', b.id === `btn-tbl-${tableName}`);
+  });
+
+  const thead = document.getElementById('data-sqlite-thead');
+  const tbody = document.getElementById('data-sqlite-tbody');
+  const pagInfo = document.getElementById('data-sqlite-pagination-info');
+
+  tbody.innerHTML = '<tr><td colspan="10" class="text-subdued" style="padding:1rem;text-align:center;">Lade Datensätze...</td></tr>';
+
+  try {
+    const res = await fetch(`/api/apps/${appId}/data/table?file=${encodeURIComponent(file)}&table=${encodeURIComponent(tableName)}&limit=50`);
+    const data = await res.json();
+    if (!data.ok && !data.success) {
+      tbody.innerHTML = `<tr><td class="text-subdued" style="padding:1rem;color:#f87171;">${escapeHtml(data.error || 'Fehler beim Laden')}</td></tr>`;
+      return;
+    }
+
+    const columns = data.columns || [];
+    const rows = data.rows || [];
+
+    if (columns.length === 0) {
+      thead.innerHTML = '';
+      tbody.innerHTML = '<tr><td class="text-subdued" style="padding:1rem;">Tabelle enthält keine Spalten.</td></tr>';
+      pagInfo.textContent = '0 Spalten';
+      return;
+    }
+
+    thead.innerHTML = `<tr>${columns.map(c => `<th>${escapeHtml(c.name)} ${c.pk ? '<span style="color:var(--primary);font-size:0.7rem;">(PK)</span>' : ''}</th>`).join('')}</tr>`;
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${columns.length}" class="text-subdued" style="padding:1rem;text-align:center;">Tabelle ist leer (0 Einträge).</td></tr>`;
+    } else {
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          ${columns.map(c => {
+            const val = r[c.name];
+            const str = (val === null || val === undefined) ? '<span class="text-subdued">NULL</span>' : escapeHtml(typeof val === 'object' ? JSON.stringify(val) : String(val));
+            return `<td class="font-mono">${str}</td>`;
+          }).join('')}
+        </tr>
+      `).join('');
+    }
+
+    pagInfo.textContent = `Tabelle '${tableName}': ${rows.length} von ${data.total} Einträgen (Limit: 50)`;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td class="text-subdued" style="padding:1rem;color:#f87171;">Netzwerkfehler: ${escapeHtml(err.message)}</td></tr>`;
+  }
+};
+
+document.getElementById('btn-data-refresh')?.addEventListener('click', () => {
+  if (activeInspectorApp) loadAppData(activeInspectorApp.id);
+});
+
+document.getElementById('btn-data-reset')?.addEventListener('click', async () => {
+  if (!activeInspectorApp) return;
+  if (!confirm(`Möchten Sie wirklich den gesamten persistenten Speicher (/data) von '${activeInspectorApp.subdomain}' unwiderruflich leeren? Alle SQLite-Tabellen und Dateien werden gelöscht.`)) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/apps/${activeInspectorApp.id}/data`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok || data.success) {
+      showToast('Speicher erfolgreich zurückgesetzt', 'success');
+      loadAppData(activeInspectorApp.id);
+    } else {
+      showToast(data.error || 'Fehler beim Zurücksetzen', 'error');
+    }
+  } catch (_) {
+    showToast('Netzwerkfehler', 'error');
+  }
 });
 
 // Inspector Settings Form Submission

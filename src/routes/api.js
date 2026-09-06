@@ -9,6 +9,7 @@ import { dockerService } from '../services/docker.js';
 import { requireAuth } from '../middleware/auth.js';
 import { sanitizeSubdomain } from '../utils/slug.js';
 import AdmZip from 'adm-zip';
+import { DatabaseSync } from 'node:sqlite';
 
 export const apiRouter = express.Router();
 
@@ -415,6 +416,219 @@ apiRouter.get(['/apps/:identifier/download', '/sites/:identifier/download', '/ap
   } catch (err) {
     res.status(500).json({ ok: false, success: false, error: 'Fehler beim Erstellen des ZIP-Archivs: ' + err.message });
   }
+});
+
+// -------------------------------------------------------------
+// 10c. Persistent Data & Database Management (/data Volume)
+// -------------------------------------------------------------
+function scanDataDir(dirPath, relativePrefix = '') {
+  let files = [];
+  let totalBytes = 0;
+  if (!fs.existsSync(dirPath)) return { files, totalBytes };
+
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    const relPath = relativePrefix ? `${relativePrefix}/${entry.name}` : entry.name;
+    try {
+      const stat = fs.statSync(fullPath);
+      if (entry.isDirectory()) {
+        const sub = scanDataDir(fullPath, relPath);
+        files = files.concat(sub.files);
+        totalBytes += sub.totalBytes;
+      } else if (entry.isFile()) {
+        const isSqlite = /\.(sqlite|sqlite3|db)$/i.test(entry.name);
+        const isJson = /\.json$/i.test(entry.name);
+        files.push({
+          name: entry.name,
+          path: relPath,
+          sizeBytes: stat.size,
+          mtime: stat.mtime.toISOString(),
+          isSqlite,
+          isJson
+        });
+        totalBytes += stat.size;
+      }
+    } catch (_) {}
+  }
+  return { files, totalBytes };
+}
+
+function inspectSqliteTables(sqliteFilePath) {
+  let db = null;
+  try {
+    db = new DatabaseSync(sqliteFilePath, { readOnly: true });
+    const tablesRaw = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+    const tables = [];
+    for (const t of tablesRaw) {
+      const tableName = t.name;
+      let rowCount = 0;
+      let columns = [];
+      try {
+        const countRes = db.prepare(`SELECT count(*) as cnt FROM "${tableName}"`).get();
+        rowCount = countRes ? countRes.cnt : 0;
+      } catch (_) {}
+      try {
+        const colInfo = db.prepare(`PRAGMA table_info("${tableName}")`).all();
+        columns = colInfo.map(c => ({ name: c.name, type: c.type, pk: !!c.pk }));
+      } catch (_) {}
+      tables.push({ name: tableName, rowCount, columns });
+    }
+    return tables;
+  } catch (_) {
+    return [];
+  } finally {
+    if (db) {
+      try { db.close(); } catch (_) {}
+    }
+  }
+}
+
+// 1. Overview & SQLite Schema
+apiRouter.get(['/apps/:identifier/data', '/sites/:identifier/data'], requireAuth, (req, res) => {
+  const app = appDb.getAppByIdOrSubdomain(req.params.identifier);
+  if (!app) return res.status(404).json({ ok: false, success: false, error: 'App nicht gefunden' });
+
+  const dataDir = path.join(config.appsDir, app.id, 'data');
+  const { files, totalBytes } = scanDataDir(dataDir);
+
+  // Find first SQLite database file if any
+  const sqliteFiles = files.filter(f => f.isSqlite);
+  let sqliteInfo = null;
+
+  if (sqliteFiles.length > 0) {
+    const primaryDbFile = sqliteFiles[0];
+    const fullDbPath = path.join(dataDir, primaryDbFile.path);
+    const tables = inspectSqliteTables(fullDbPath);
+    sqliteInfo = {
+      hasDb: true,
+      file: primaryDbFile.path,
+      allDbFiles: sqliteFiles.map(f => f.path),
+      tables
+    };
+  }
+
+  res.json({
+    ok: true,
+    success: true,
+    storage: {
+      exists: fs.existsSync(dataDir),
+      mountPath: '/data',
+      altMountPath: '/app/data',
+      totalSizeBytes: totalBytes,
+      fileCount: files.length,
+      files,
+      sqlite: sqliteInfo
+    }
+  });
+});
+
+// 2. Query SQLite Table rows (read-only)
+apiRouter.get(['/apps/:identifier/data/table', '/sites/:identifier/data/table'], requireAuth, (req, res) => {
+  const app = appDb.getAppByIdOrSubdomain(req.params.identifier);
+  if (!app) return res.status(404).json({ ok: false, success: false, error: 'App nicht gefunden' });
+
+  const dataDir = path.join(config.appsDir, app.id, 'data');
+  const targetTable = (req.query.table || '').toString().trim();
+  if (!targetTable) {
+    return res.status(400).json({ ok: false, success: false, error: 'Parameter "table" ist erforderlich' });
+  }
+
+  const reqFile = (req.query.file || 'app.db').toString().trim();
+  const safeFileName = path.basename(reqFile);
+  const dbPath = path.join(dataDir, safeFileName);
+
+  if (!fs.existsSync(dbPath)) {
+    return res.status(404).json({ ok: false, success: false, error: `Datenbankdatei '${safeFileName}' nicht gefunden` });
+  }
+
+  let db = null;
+  try {
+    db = new DatabaseSync(dbPath, { readOnly: true });
+    const validTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(targetTable);
+    if (!validTable) {
+      return res.status(404).json({ ok: false, success: false, error: `Tabelle '${targetTable}' nicht in ${safeFileName} gefunden` });
+    }
+
+    const colInfo = db.prepare(`PRAGMA table_info("${targetTable}")`).all();
+    const columns = colInfo.map(c => ({ name: c.name, type: c.type, pk: !!c.pk }));
+
+    const countRes = db.prepare(`SELECT count(*) as cnt FROM "${targetTable}"`).get();
+    const total = countRes ? countRes.cnt : 0;
+
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+
+    const rows = db.prepare(`SELECT * FROM "${targetTable}" LIMIT ? OFFSET ?`).all(limit, offset);
+
+    res.json({
+      ok: true,
+      success: true,
+      table: targetTable,
+      file: safeFileName,
+      columns,
+      rows,
+      total,
+      limit,
+      offset
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, success: false, error: 'Fehler beim Lesen der Tabelle: ' + err.message });
+  } finally {
+    if (db) {
+      try { db.close(); } catch (_) {}
+    }
+  }
+});
+
+// 3. Download Data Volume as ZIP
+apiRouter.get(['/apps/:identifier/data/download', '/sites/:identifier/data/download'], requireAuth, (req, res) => {
+  const app = appDb.getAppByIdOrSubdomain(req.params.identifier);
+  if (!app) return res.status(404).json({ ok: false, success: false, error: 'App nicht gefunden' });
+
+  const dataDir = path.join(config.appsDir, app.id, 'data');
+  if (!fs.existsSync(dataDir)) {
+    return res.status(404).json({ ok: false, success: false, error: 'Kein Datenverzeichnis für diese App gefunden' });
+  }
+
+  try {
+    const zip = new AdmZip();
+    const entries = fs.readdirSync(dataDir);
+    if (entries.length === 0) {
+      zip.addFile('README.txt', Buffer.from('SnapHost Datenverzeichnis ist leer.\n'));
+    } else {
+      zip.addLocalFolder(dataDir);
+    }
+    const buffer = zip.toBuffer();
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${app.subdomain}-data.zip"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ ok: false, success: false, error: 'Fehler beim Erstellen des Daten-Archivs: ' + err.message });
+  }
+});
+
+// 4. Reset / Clear Data Volume
+apiRouter.delete(['/apps/:identifier/data', '/sites/:identifier/data'], requireAuth, async (req, res) => {
+  const app = appDb.getAppByIdOrSubdomain(req.params.identifier);
+  if (!app) return res.status(404).json({ ok: false, success: false, error: 'App nicht gefunden' });
+
+  const dataDir = path.join(config.appsDir, app.id, 'data');
+  if (fs.existsSync(dataDir)) {
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+  fs.mkdirSync(dataDir, { recursive: true });
+
+  // If container running, restart it to re-initialize fresh schemas
+  if (app.type === 'docker' && app.container_id && app.status === 'running') {
+    try {
+      await dockerService.restart(app.container_id);
+    } catch (_) {}
+  }
+
+  res.json({ ok: true, success: true, message: `Persistenter Speicher für '${app.subdomain}' wurde erfolgreich zurückgesetzt.` });
 });
 
 // -------------------------------------------------------------

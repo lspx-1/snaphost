@@ -65,7 +65,7 @@ class DockerService {
         const generatedDockerfile = `FROM node:22-alpine
 WORKDIR /app
 COPY . .
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN mkdir -p /app/data && if [ -f package-lock.json ]; then npm ci; else npm install; fi
 ${buildCmd}ENV PORT=${port}
 ENV NODE_ENV=production
 EXPOSE ${port}
@@ -79,6 +79,7 @@ ${startCmd}
         const generatedDockerfile = `FROM node:22-alpine
 WORKDIR /app
 COPY . .
+RUN mkdir -p /app/data
 ${buildCmd}ENV PORT=${port}
 ENV NODE_ENV=production
 EXPOSE ${port}
@@ -134,15 +135,28 @@ ${singleStartCmd}
       await oldContainer.remove().catch(() => {});
     } catch (_) {}
 
-    // Prepare container environment
+    // Ensure persistent data directory exists for this app
+    const appDataDir = path.join(config.appsDir, appId, 'data');
+    if (!fs.existsSync(appDataDir)) {
+      fs.mkdirSync(appDataDir, { recursive: true });
+    }
+
+    // Prepare container environment with persistent storage paths
     const customEnv = options.env && typeof options.env === 'object'
       ? Object.entries(options.env).map(([k, v]) => `${k}=${v}`)
       : [];
 
-    const envVars = [`PORT=${port}`, 'NODE_ENV=production', ...customEnv];
+    const storageEnv = [
+      'DATA_DIR=/app/data',
+      'DATABASE_PATH=/app/data/app.db',
+      'DATABASE_URL=file:/app/data/app.db',
+      'SQLITE_DB=/app/data/app.db'
+    ];
+
+    const envVars = [`PORT=${port}`, 'NODE_ENV=production', ...storageEnv, ...customEnv];
 
     // 4. Create and start the container
-    console.log(`[Docker] Starte Container ${containerName}...`);
+    console.log(`[Docker] Starte Container ${containerName} mit persistentem /data-Volume...`);
     const container = await this.docker.createContainer({
       Image: imageName,
       name: containerName,
@@ -151,6 +165,10 @@ ${singleStartCmd}
         [`${port}/tcp`]: {}
       },
       HostConfig: {
+        Binds: [
+          `${appDataDir}:/app/data`,
+          `${appDataDir}:/data`
+        ],
         PortBindings: {
           [`${port}/tcp`]: [{ HostIp: '127.0.0.1', HostPort: '' }]
         },

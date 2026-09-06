@@ -36,6 +36,9 @@ npx snaphost logs mein-spiel --tail 150                  # Live-Logs lesen (esse
 npx snaphost status mein-spiel                           # Status, Version & Container-ID prüfen
 npx snaphost pull mein-spiel                             # Quellcode herunterladen & entpacken
 npx snaphost pull mein-spiel ./dev-ordner                # In speziellen Ordner entpacken
+npx snaphost data mein-spiel                             # Persistente Datenbank & SQLite-Tabellen prüfen
+npx snaphost data pull mein-spiel                        # Datenbank & Daten lokal herunterladen
+npx snaphost data reset mein-spiel                       # Speicher leeren (Reset)
 npx snaphost restart mein-spiel                          # Container neu starten
 npx snaphost rebuild mein-spiel                          # Aus vorhandenen Dateien neu bauen
 npx snaphost rollback mein-spiel                         # Rollback zur vorherigen Version
@@ -194,6 +197,10 @@ Als `{id}` kann sowohl die Subdomain (Slug) als auch die interne ID übergeben w
 | `POST` | `/api/apps/{id}/rollback` | Sofortiges Rollback zur vorherigen Version (optional: `{"version": 1}`) |
 | `POST` | `/api/apps/{id}/stop` | Anwendung offline nehmen (gibt HTTP 503 aus, behält alle Daten) |
 | `GET` | `/api/apps/{id}/download` | Quellcode-Bundle der aktuellen Version als ZIP herunterladen |
+| `GET` | `/api/apps/{id}/data` | Persistente Speicher-Übersicht, Dateien & SQLite-Tabellen abrufen |
+| `GET` | `/api/apps/{id}/data/table` | Datensätze einer SQLite-Tabelle lesen (`?table=name&limit=50`) |
+| `GET` | `/api/apps/{id}/data/download` | Alle persistenten Daten (/data) als ZIP herunterladen |
+| `DELETE` | `/api/apps/{id}/data` | Persistente Datenbank & Dateien leeren (Reset) |
 | `GET` | `/api/apps/{id}/deployments` | Versions-Historie mit Dateigrößen und Timestamps abrufen |
 | `DELETE` | `/api/apps/{id}` | Projekt, Archivdateien und Docker-Container endgültig löschen |
 

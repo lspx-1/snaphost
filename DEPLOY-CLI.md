@@ -66,6 +66,15 @@ npx snaphost pull mein-projekt
 # Optional in einen bestimmten Zielordner:
 npx snaphost pull mein-projekt ./zielordner
 
+# Persistente Datenbank (/data) prüfen & SQLite-Tabellen anzeigen:
+npx snaphost data mein-projekt
+
+# Datenbank & Dateien lokal herunterladen:
+npx snaphost data pull mein-projekt
+
+# Speicher leeren (Reset):
+npx snaphost data reset mein-projekt
+
 # App / Container anhalten (offline nehmen):
 npx snaphost stop mein-projekt
 
@@ -103,6 +112,7 @@ Im Projektverzeichnis kann optional eine `deploy.json` hinterlegt werden:
 ### Technische Vorgaben für Apps & Container:
 - **Port:** Node.js-Server lauschen auf `process.env.PORT` (Fallback: `3000`) und binden an `0.0.0.0`:
   `const port = process.env.PORT || 3000; server.listen(port, '0.0.0.0');`
+- **Persistente Datenbank / Speicher:** Der Ordner `/data` bzw. `./data` (und Umgebungsvariable `process.env.DATA_DIR`, `process.env.DATABASE_PATH = /app/data/app.db`) ist dauerhaft persistent gemountet. Alle Daten (z. B. SQLite-Tabellen oder JSON-Dateien) bleiben bei jedem Deploy und Rebuild erhalten. Keine Passwörter oder externe Datenbanken nötig!
 - **WebSockets:** Nutzen denselben HTTP-Server und Port wie die Web-App.
 - **Dateipfade:** In HTML/CSS stets relative Pfade verwenden (z. B. `./app.js`, nicht `/app.js`).
 - `node_modules` und `.git` werden von der CLI automatisch vom Upload ausgeschlossen.

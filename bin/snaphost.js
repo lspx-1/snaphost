@@ -552,6 +552,108 @@ async function cmdOpen(args, flags) {
   }
 }
 
+async function cmdData(args, flags) {
+  const { server, token } = resolveCredentials(flags);
+  const subAction = (args[0] === 'pull' || args[0] === 'download' || args[0] === 'reset') ? args[0] : null;
+  const identifier = subAction ? args[1] : args[0];
+
+  if (!identifier) {
+    console.error('❌ Bitte Subdomain angeben:');
+    console.error('  snaphost data <slug>                # Status & SQLite-Tabellen anzeigen');
+    console.error('  snaphost data pull <slug> [ordner]  # Datenbank & Dateien herunterladen');
+    console.error('  snaphost data reset <slug>          # Speicher leeren');
+    process.exit(1);
+  }
+
+  // 1. Data pull / download
+  if (subAction === 'pull' || subAction === 'download') {
+    const destDir = args[2] || flags.out || path.join(process.cwd(), `${identifier}-data`);
+    console.log(`⚡ Lade persistenten Speicher für '${identifier}' herunter...`);
+    try {
+      const res = await fetch(`${server}/api/apps/${identifier}/data/download`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error(`❌ Download fehlgeschlagen: ${data.error || res.statusText}`);
+        process.exit(1);
+      }
+      const arrayBuffer = await res.arrayBuffer();
+      const zipBuffer = Buffer.from(arrayBuffer);
+      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+      await extractZipBuffer(zipBuffer, destDir);
+      console.log(`\n✓ Daten für '${identifier}' erfolgreich heruntergeladen & entpackt!`);
+      console.log(`• Zielverzeichnis: ${path.resolve(destDir)}`);
+    } catch (err) {
+      console.error(`❌ Fehler: ${err.message}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  // 2. Data reset
+  if (subAction === 'reset') {
+    console.log(`⚡ Setze Speicher für '${identifier}' zurück...`);
+    try {
+      const res = await fetch(`${server}/api/apps/${identifier}/data`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.ok || data.success) {
+        console.log(`✓ ${data.message || 'Speicher erfolgreich geleert.'}`);
+      } else {
+        console.error(`❌ Fehler: ${data.error || 'Aktion fehlgeschlagen'}`);
+      }
+    } catch (err) {
+      console.error(`❌ Fehler: ${err.message}`);
+    }
+    return;
+  }
+
+  // 3. Default: Show status, files & tables
+  try {
+    const res = await fetch(`${server}/api/apps/${identifier}/data`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (!data.ok && !data.success) {
+      console.error(`❌ Fehler: ${data.error || 'App nicht gefunden'}`);
+      return;
+    }
+
+    const st = data.storage;
+    const kb = (st.totalSizeBytes / 1024).toFixed(1);
+    console.log(`\n📁 Persistenter Speicher für '${identifier}':`);
+    console.log(`• Container-Pfade:  /data und /app/data (process.env.DATA_DIR)`);
+    console.log(`• Status:            ${st.fileCount > 0 ? `Aktiv (${st.fileCount} Dateien, ${kb} KB)` : 'Bereit (noch keine Dateien angelegt)'}`);
+
+    if (st.files && st.files.length > 0) {
+      console.log('\n📄 Gespeicherte Dateien:');
+      for (const f of st.files) {
+        const fSize = f.sizeBytes < 1024 ? `${f.sizeBytes} B` : `${(f.sizeBytes / 1024).toFixed(1)} KB`;
+        const dateStr = new Date(f.mtime).toLocaleString('de-DE');
+        console.log(`  - ${f.path.padEnd(24)} (${fSize}, geändert: ${dateStr})`);
+      }
+    }
+
+    if (st.sqlite && st.sqlite.tables && st.sqlite.tables.length > 0) {
+      console.log(`\n🗄️  SQLite-Datenbank (${st.sqlite.file}):`);
+      for (const tbl of st.sqlite.tables) {
+        const colStr = tbl.columns && tbl.columns.length > 0 ? ` [${tbl.columns.map(c => c.name || c).join(', ')}]` : '';
+        console.log(`  • ${tbl.name}: ${tbl.rowCount} Einträge${colStr}`);
+      }
+    } else {
+      console.log('\n💡 Hinweis für Node.js/SQLite:');
+      console.log('  Dateien im Ordner ./data oder /data bleiben dauerhaft über alle Deploys erhalten.');
+      console.log('  Umgebungsvariable: process.env.DATA_DIR oder process.env.DATABASE_PATH');
+    }
+    console.log('');
+  } catch (err) {
+    console.error(`❌ Fehler beim Abrufen der Speicherdaten: ${err.message}`);
+  }
+}
+
 function showHelp() {
   console.log(`
 ⚡ SnapHost CLI - Das offizielle Terminal-Werkzeug
@@ -563,6 +665,7 @@ NUTZUNG:
 BEFEHLE:
   deploy [pfad]      Projekt hochladen (Dateien, Ordner, dist/, ZIP oder .html)
   pull <slug> [dir]  Quellcode herunterladen & entpacken (Alias: download, clone)
+  data <slug>        Persistente Datenbank & Speicher (/data) verwalten
   logs <slug>        Live-Container & Build-Logs ausgeben (z. B. snaphost logs mein-spiel)
   status <slug>      Status, Version, URL und Details einer App prüfen
   list (oder ls)     Alle aktiven Bereitstellungen tabellarisch auflisten
@@ -589,7 +692,8 @@ FLAGS:
 BEISPIELE:
   npx snaphost deploy                                    # Aktuellen Ordner deployen
   npx snaphost pull mein-spiel                           # Quellcode herunterladen & entpacken
-  npx snaphost pull mein-spiel ./dev-ordner              # In speziellen Ordner entpacken
+  npx snaphost data mein-spiel                           # Datenbank & Tabellen anzeigen
+  npx snaphost data pull mein-spiel                      # DB-Dateien lokal herunterladen
   npx snaphost deploy ./dist --slug mein-spiel           # Build-Ordner mit festem Namen
   npx snaphost deploy . --ttl permanent                  # Dauerhafter Link
   npx snaphost logs mein-spiel --tail 150                # Logs zum Debuggen lesen
@@ -639,6 +743,11 @@ async function main() {
     case 'download':
     case 'clone':
       await cmdPull(positional, flags);
+      break;
+    case 'data':
+    case 'db':
+    case 'storage':
+      await cmdData(positional, flags);
       break;
     case 'logs':
       await cmdLogs(positional, flags);
