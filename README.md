@@ -9,6 +9,9 @@
 * 🤖 **KI-Schnittstelle:** Mit nur einem cURL-Befehl lädt jede KI (Claude, Cursor, Antigravity, ChatGPT) fertige Projekte direkt hoch.
 * 🎛️ **Admin-Dashboard:** Übersicht mit Login, Drag & Drop Upload, Live-Logs, API-Keys und Link-Management.
 
+> 📖 **Architektur & Entwickler-Handbuch:** Siehe [ARCHITECTURE.md](./ARCHITECTURE.md) für den vollständigen Systemaufbau, Designentscheidungen und Verbesserungsideen.  
+> 🤖 **KI-Deployment-Spezifikation:** Siehe [DEPLOY.md](./DEPLOY.md) für die cURL- und API-Dokumentation für Coding-Assistenten.
+
 ---
 
 ## 🏗️ 1. Einrichtung in Nginx Proxy Manager (NPM)
