@@ -174,6 +174,7 @@ Formularfelder beim Upload (`-F "ttl=3d"`, `-F "password=secret"`) überschreibe
 
 - **Automatischer Slug aus Dateiname:** Wird kein `slug` angegeben, leitet SnapHost die Subdomain automatisch aus dem Dateinamen ab (z. B. `mein-spiel.zip` -> `mein-spiel`). Ist die Subdomain bereits belegt, wird automatisch ein Zähler angehängt (`mein-spiel-2`, `mein-spiel-3`), um versehentliches Überschreiben zu verhindern.
 - **Expliziter Slug = In-Place Update:** Wird ein `slug` explizit übergeben und existiert die App bereits, wird sie sofort aktualisiert. SnapHost legt dabei automatisch eine Sicherung der vorherigen Version (`v1`, `v2` …) an, sodass jederzeit ein verlustfreies Rollback möglich ist.
+- **Persistente Datenbank & Speicher (/data):** Docker- und Node.js-Apps haben vollen Zugriff auf ein persistentes Volume unter `/data` bzw. `./data` (Umgebungsvariable `DATA_DIR=/app/data`, `DATABASE_PATH=/app/data/app.db`). Alle darin gespeicherten Daten (wie SQLite `app.db` oder JSON-Dateien) überstehen neue Versionen, Rebuilds und Rollbacks vollständig. Keine Passwörter oder externe Datenbanken nötig!
 - **Fehlerbehandlung:** Antwortet die API mit `ok: false`, enthält `error` die genaue Fehlerursache inklusive Auszug aus dem Build-Log.
 - **Slug-Syntax:** Nur Kleinbuchstaben (`a-z`), Ziffern (`0-9`) und Bindestriche (`-`), min. 3 Zeichen.
 

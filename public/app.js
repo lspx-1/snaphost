@@ -1025,7 +1025,36 @@ Im Projektverzeichnis kann optional eine \`deploy.json\` hinterlegt werden:
 
 ---
 
-## 🔐 5. Authentifizierung & CLI-Setup
+## 💾 5. Persistente Datenbank & Speicher (Zero-Config)
+
+SnapHost stellt für jeden Docker- bzw. Node.js-Container automatisch ein persistentes Volume unter \`/data\` und \`./data\` bereit. Alle Daten darin bleiben bei neuen Versionen, Rebuilds und Rollbacks dauerhaft erhalten:
+
+- **Umgebungsvariablen:**
+  - \`process.env.DATA_DIR\` (\`/app/data\`)
+  - \`process.env.DATABASE_PATH\` (\`/app/data/app.db\`)
+- **Verwendung in Node.js mit SQLite (\`better-sqlite3\`):**
+  \`\`\`javascript
+  import Database from 'better-sqlite3';
+  import path from 'path';
+
+  const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'app.db');
+  const db = new Database(dbPath);
+
+  // Tabellen anlegen (bleiben dauerhaft erhalten):
+  db.exec(\`
+    CREATE TABLE IF NOT EXISTS highscores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player TEXT,
+      score INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  \`);
+  \`\`\`
+- **Live-Inspektion:** Die Tabellen und Zeilen können direkt im WebUI-Inspector unter dem Tab **"Speicher & DB"** oder per Terminal (\`npx snaphost data <slug>\`) eingesehen werden.
+
+---
+
+## 🔐 6. Authentifizierung & CLI-Setup
 
 Die SnapHost CLI liest Zugangsdaten automatisch aus der lokalen Konfiguration (\`~/.snaphost/config.json\`) oder Umgebungsvariablen.
 
@@ -1113,6 +1142,21 @@ curl -sS -X GET "${baseApi}/apps" \\
 
 ### Quellcode als ZIP herunterladen:
 curl -sS -O -J -H "Authorization: Bearer ${apiKey}" "${baseApi}/apps/mein-spiel/download"
+
+### Persistente Datenbank / Speicher (/data) abfragen:
+curl -sS -X GET "${baseApi}/apps/mein-spiel/data" \
+  -H "Authorization: Bearer ${apiKey}"
+
+### Datensätze einer SQLite-Tabelle lesen:
+curl -sS -X GET "${baseApi}/apps/mein-spiel/data/table?table=highscores" \
+  -H "Authorization: Bearer ${apiKey}"
+
+### Datenbank & Dateien als ZIP herunterladen:
+curl -sS -O -J -H "Authorization: Bearer ${apiKey}" "${baseApi}/apps/mein-spiel/data/download"
+
+### Speicher zurücksetzen (Reset):
+curl -sS -X DELETE "${baseApi}/apps/mein-spiel/data" \
+  -H "Authorization: Bearer ${apiKey}"
 
 ### App löschen:
 curl -sS -X DELETE "${baseApi}/apps/mein-spiel" \\
