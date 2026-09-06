@@ -866,6 +866,13 @@ const btnCopyAiPrompt = document.getElementById('btn-copy-ai-prompt');
 const btnCopyAiLabel = document.getElementById('btn-copy-ai-label');
 const btnDownloadAiPrompt = document.getElementById('btn-download-ai-prompt');
 const codeAiPrompt = document.getElementById('code-ai-prompt');
+const btnPromptModeCli = document.getElementById('btn-prompt-mode-cli');
+const btnPromptModeApi = document.getElementById('btn-prompt-mode-api');
+const aiPromptModeHint = document.getElementById('ai-prompt-mode-hint');
+
+let currentAiPromptMode = 'cli'; // 'cli' (default) or 'api'
+let cachedDeployMd = '';
+let cachedDeployCliMd = '';
 
 document.getElementById('btn-ai-guide')?.addEventListener('click', () => {
   updateAiPromptGuide();
@@ -887,7 +894,241 @@ function getQuickstartServerUrl() {
   return `${protocol}${root}`;
 }
 
-async function updateAiPromptGuide() {
+function generateCliPrompt(serverUrl, appsDomain, rawDeployCliMd) {
+  if (rawDeployCliMd) {
+    let text = rawDeployCliMd;
+    const hostOnly = serverUrl.replace(/^https?:\/\//, '');
+    text = text.replace(/https:\/\/DEINE_SNAPHOST_DOMAIN/g, serverUrl);
+    text = text.replace(/<slug>\.DEINE_SNAPHOST_DOMAIN/g, `<slug>.${appsDomain}`);
+    text = text.replace(/DEINE_SNAPHOST_DOMAIN/g, hostOnly);
+    return text;
+  }
+
+  return `# SnapHost CLI – Anleitung für KI-Assistenten
+
+Du bist angewiesen, dieses Projekt mit der **SnapHost CLI** bereitzustellen, zu debuggen und zu verwalten.
+Führe alle Aktionen über \`npx snaphost\` (oder \`snaphost\`, falls global installiert) in deinem Terminal aus.
+
+---
+
+## 🔐 1. Authentifizierung & Konfiguration
+SnapHost speichert Server-URL und API-Token automatisch in \`~/.snaphost/config.json\`.
+- **Wichtig:** Du musst **keinen** Token erfragen oder in Befehle einfügen, wenn die CLI bereits eingeloggt ist!
+- Prüfe den Login-Status jederzeit mit:
+  \`\`\`bash
+  npx snaphost whoami
+  \`\`\`
+- Falls noch nicht eingeloggt:
+  \`\`\`bash
+  npx snaphost login --server ${serverUrl}
+  \`\`\`
+  *(Oder setze Umgebungsvariablen: \`SNAPHOST_SERVER=${serverUrl}\` und \`SNAPHOST_TOKEN=<token>\`)*
+
+- **Server-Basis-URL:** \`${serverUrl}\`
+- **Bereitgestellte Apps laufen unter:** \`https://<slug>.${appsDomain}\`
+
+---
+
+## 🚀 2. Projekt bereitstellen (Deploy)
+
+### Frontend / Statische Webseiten (HTML, CSS, JS, Vite, React, Vue, Svelte):
+1. Falls nötig, zuerst das Projekt bauen:
+   \`\`\`bash
+   npm run build
+   \`\`\`
+2. Bereitstellen:
+   \`\`\`bash
+   # Automatische Erkennung (sucht ./dist, ./build, ./out oder aktuelles Verzeichnis):
+   npx snaphost deploy
+
+   # Gezielt den Build-Ordner mit Wunsch-Subdomain und dauerhafter Laufzeit:
+   npx snaphost deploy ./dist --slug mein-projekt --ttl permanent
+
+   # Optional mit Passwortschutz:
+   npx snaphost deploy ./dist --slug mein-projekt --password geheim
+   \`\`\`
+
+### Fullstack / Backend / Multiplayer (Node.js, Express, WebSockets, Docker):
+1. Stelle sicher, dass \`package.json\` ein \`"start"\` Script enthält (z. B. \`"start": "node server.js"\`).
+2. Im Projektverzeichnis ausführen:
+   \`\`\`bash
+   npx snaphost deploy . --slug mein-backend --ttl permanent
+   \`\`\`
+
+---
+
+## 🛠️ 3. Debugging & Fehleranalyse (HÄUFIGE FEHLER BEHEBEN)
+
+### A. Live-Logs prüfen (Erste Pflicht bei Fehlern oder 502 Bad Gateway!):
+\`\`\`bash
+# Zeigt die letzten 100 Zeilen der Container- & Konsolen-Logs:
+npx snaphost logs mein-projekt --tail 100
+\`\`\`
+Lies die Fehlermeldungen im Log genau durch (fehlende Module, Port-Konflikte, Syntaxfehler etc.).
+
+### B. Status abfragen:
+\`\`\`bash
+npx snaphost status mein-projekt
+\`\`\`
+Gibt Status (\`running\`, \`error\`, \`stopped\`), Port, Container-ID, interne URL und Gültigkeit aus.
+
+---
+
+## 🔄 4. Verwaltung, Neustart & Rollback
+
+\`\`\`bash
+# App nach Code-Änderungen oder Konfigurationsanpassungen neu starten:
+npx snaphost restart mein-projekt
+
+# Container komplett neu bauen (z. B. nach Dockerfile- oder Dependency-Änderungen):
+npx snaphost rebuild mein-projekt
+
+# Zur vorherigen funktionierenden Version zurückkehren:
+npx snaphost rollback mein-projekt
+
+# Alle aktiven Apps auflisten:
+npx snaphost list
+
+# App im Browser aufrufen:
+npx snaphost open mein-projekt
+
+# App stoppen oder löschen:
+npx snaphost stop mein-projekt
+npx snaphost delete mein-projekt
+\`\`\`
+
+---
+
+## 📋 5. Projektkonfiguration (\`deploy.json\`)
+Du kannst optional eine \`deploy.json\` im Stammverzeichnis deines Projekts anlegen:
+
+\`\`\`json
+{
+  "name": "mein-projekt",
+  "type": "docker",
+  "port": 3000,
+  "spa": true,
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
+\`\`\`
+
+### ⚠️ Wichtige Regeln für Server & Container:
+- **Port:** Node.js-Server **müssen** auf \`process.env.PORT\` (Fallback: \`3000\`) lauschen und an \`0.0.0.0\` binden:
+  \`const port = process.env.PORT || 3000; server.listen(port, '0.0.0.0');\`
+- **WebSockets:** Müssen denselben HTTP-Server und Port nutzen (kein zweiter Port).
+- **Dateipfade:** Verwende in HTML/CSS stets **relative Pfade** (z. B. \`./app.js\`, nicht \`/app.js\`).
+- \`node_modules\` und \`.git\` werden von der CLI automatisch vom Upload ausgeschlossen.
+
+---
+
+Nach erfolgreichem Deployment teilst du dem Nutzer die Live-URL wörtlich mit:
+👉 \`https://<slug>.${appsDomain}\`
+`;
+}
+
+function generateApiPrompt(serverUrl, appsDomain, apiKey, rawDeployMd) {
+  if (rawDeployMd) {
+    let text = rawDeployMd;
+    const hostOnly = serverUrl.replace(/^https?:\/\//, '');
+    text = text.replace(/https:\/\/DEINE_SNAPHOST_DOMAIN/g, serverUrl);
+    text = text.replace(/<slug>\.DEINE_SNAPHOST_DOMAIN/g, `<slug>.${appsDomain}`);
+    text = text.replace(/DEINE_SNAPHOST_DOMAIN/g, hostOnly);
+    if (apiKey && apiKey !== '$DEPLOY_TOKEN') {
+      text = text.replace(/DEIN_API_KEY/g, apiKey);
+    }
+    return text;
+  }
+
+  const endpoint = `${serverUrl}/api/deploy`;
+  const baseApi = `${serverUrl}/api`;
+
+  return `# Deploy-Anleitung für KI-Assistenten (SnapHost REST-API)
+
+- Server Basis-URL: ${serverUrl}
+- Apps laufen unter: https://<slug>.${appsDomain}
+- Header: Authorization: Bearer ${apiKey}
+
+---
+
+## 1. Bereitstellen per cURL (POST /api/deploy)
+
+### A. ZIP-Archiv hochladen:
+curl -sS -X POST "${endpoint}" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -F "file=@bundle.zip" \\
+  -F "slug=mein-spiel" \\
+  -F "type=auto" \\
+  -F "ttl=permanent"
+
+### B. Einzelne HTML-Datei:
+curl -sS -X POST "${endpoint}" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -F "file=@index.html" \\
+  -F "slug=mein-spiel"
+
+---
+
+## 2. Debugging & Wartung per API
+
+### Live-Logs lesen (Debugging bei Fehlern oder 502 Bad Gateway):
+curl -sS -X GET "${baseApi}/apps/mein-spiel/logs?tail=150" \\
+  -H "Authorization: Bearer ${apiKey}"
+
+### Container neu starten:
+curl -sS -X POST "${baseApi}/apps/mein-spiel/restart" \\
+  -H "Authorization: Bearer ${apiKey}"
+
+### Container neu bauen (Rebuild):
+curl -sS -X POST "${baseApi}/apps/mein-spiel/rebuild" \\
+  -H "Authorization: Bearer ${apiKey}"
+
+### Rollback zur vorherigen Version:
+curl -sS -X POST "${baseApi}/apps/mein-spiel/rollback" \\
+  -H "Authorization: Bearer ${apiKey}"
+
+### Status abrufen:
+curl -sS -X GET "${baseApi}/apps/mein-spiel" \\
+  -H "Authorization: Bearer ${apiKey}"
+
+### Alle Apps auflisten:
+curl -sS -X GET "${baseApi}/apps" \\
+  -H "Authorization: Bearer ${apiKey}"
+
+### App löschen:
+curl -sS -X DELETE "${baseApi}/apps/mein-spiel" \\
+  -H "Authorization: Bearer ${apiKey}"
+
+---
+
+## 3. PowerShell Skript (Alternative):
+# Windows PowerShell
+Invoke-WebRequest ${serverUrl}/deploy.ps1 -OutFile deploy.ps1
+.\\deploy.ps1 .\\dist -Slug mein-spiel -Ttl permanent
+`;
+}
+
+function setAiPromptMode(mode) {
+  currentAiPromptMode = mode;
+  if (btnPromptModeCli) btnPromptModeCli.classList.toggle('active', mode === 'cli');
+  if (btnPromptModeApi) btnPromptModeApi.classList.toggle('active', mode === 'api');
+
+  if (aiPromptModeHint) {
+    if (mode === 'cli') {
+      aiPromptModeHint.innerHTML = '<strong style="color:var(--text-primary);">Empfohlen &amp; Sicher:</strong> KI-Agenten nutzen direkt <code>npx snaphost deploy</code>, <code>npx snaphost logs</code> etc. Keine Tokens im Chat sichtbar; Zugangsdaten liegen sicher in <code>~/.snaphost/config.json</code>.';
+    } else {
+      aiPromptModeHint.innerHTML = '<strong style="color:var(--text-primary);">Klassische REST-API:</strong> Direkte HTTP-Aufrufe mit cURL. Der API-Schlüssel muss im Authorization-Header übergeben werden.';
+    }
+  }
+
+  renderAiPrompt();
+}
+
+btnPromptModeCli?.addEventListener('click', () => setAiPromptMode('cli'));
+btnPromptModeApi?.addEventListener('click', () => setAiPromptMode('api'));
+
+function renderAiPrompt() {
   const codeEl = document.getElementById('code-ai-prompt');
   if (!codeEl) return;
   const serverUrl = getQuickstartServerUrl();
@@ -895,66 +1136,46 @@ async function updateAiPromptGuide() {
   const appsDomain = systemInfo.rootDomain || hostOnly;
   const apiKey = systemInfo.sampleApiKey || '$DEPLOY_TOKEN';
 
-  // Load full specification from DEPLOY.md in background
-  try {
-    const res = await fetch('/DEPLOY.md');
-    if (res.ok) {
-      let text = await res.text();
-      // Dynamically substitute domain placeholders with actual server domain
-      text = text.replace(/https:\/\/DEINE_SNAPHOST_DOMAIN/g, serverUrl);
-      text = text.replace(/<slug>\.DEINE_SNAPHOST_DOMAIN/g, `<slug>.${appsDomain}`);
-      text = text.replace(/DEINE_SNAPHOST_DOMAIN/g, hostOnly);
-      if (apiKey && apiKey !== '$DEPLOY_TOKEN') {
-        text = text.replace(/DEIN_API_KEY/g, apiKey);
-      }
-      codeEl.textContent = text;
-      return;
-    }
-  } catch (_) {}
+  if (currentAiPromptMode === 'cli') {
+    codeEl.textContent = generateCliPrompt(serverUrl, appsDomain, cachedDeployCliMd);
+  } else {
+    codeEl.textContent = generateApiPrompt(serverUrl, appsDomain, apiKey, cachedDeployMd);
+  }
+}
 
-  const endpoint = `${serverUrl}/api/deploy`;
-  const baseApi = `${serverUrl}/api`;
+async function updateAiPromptGuide() {
+  renderAiPrompt();
 
-  codeEl.textContent = `# Deploy-Anleitung für KI-Assistenten (SnapHost)
+  const fetches = [];
+  if (!cachedDeployCliMd) {
+    fetches.push(
+      fetch('/DEPLOY-CLI.md')
+        .then(r => r.ok ? r.text() : '')
+        .then(t => { if (t) cachedDeployCliMd = t; })
+        .catch(() => {})
+    );
+  }
+  if (!cachedDeployMd) {
+    fetches.push(
+      fetch('/DEPLOY.md')
+        .then(r => r.ok ? r.text() : '')
+        .then(t => { if (t) cachedDeployMd = t; })
+        .catch(() => {})
+    );
+  }
 
-Server: ${serverUrl}
-Header: Authorization: Bearer ${apiKey}
-
-### 1. Bereitstellen oder Aktualisieren (In-Place Update):
-curl -sS -X POST "${endpoint}" \\
-  -H "Authorization: Bearer ${apiKey}" \\
-  -F "file=@bundle.zip" \\
-  -F "slug=mein-spiel" \\
-  -F "type=auto" \\
-  -F "ttl=24h"
-
-### 2. Live-Logs lesen (Debugging):
-curl -sS -X GET "${baseApi}/apps/mein-spiel/logs?tail=150" \\
-  -H "Authorization: Bearer ${apiKey}"
-
-### 3. Container neu starten:
-curl -sS -X POST "${baseApi}/apps/mein-spiel/restart" \\
-  -H "Authorization: Bearer ${apiKey}"
-
-### 4. Container neu bauen (Rebuild):
-curl -sS -X POST "${baseApi}/apps/mein-spiel/rebuild" \\
-  -H "Authorization: Bearer ${apiKey}"
-
-### 5. Rollback zur vorherigen Version:
-curl -sS -X POST "${baseApi}/apps/mein-spiel/rollback" \\
-  -H "Authorization: Bearer ${apiKey}"
-
-### 6. Status abrufen:
-curl -sS -X GET "${baseApi}/apps/mein-spiel" \\
-  -H "Authorization: Bearer ${apiKey}"
-`;
+  if (fetches.length > 0) {
+    await Promise.all(fetches);
+    renderAiPrompt();
+  }
 }
 
 if (btnCopyAiPrompt) {
   btnCopyAiPrompt.addEventListener('click', () => {
     const text = codeAiPrompt ? codeAiPrompt.textContent : '';
     if (!text) return;
-    copyToClipboard(text, 'KI-Prompt in Zwischenablage kopiert');
+    const modeLabel = currentAiPromptMode === 'cli' ? 'CLI-Prompt' : 'API-Prompt';
+    copyToClipboard(text, `${modeLabel} in Zwischenablage kopiert`);
     if (btnCopyAiLabel) {
       const origText = btnCopyAiLabel.textContent;
       btnCopyAiLabel.textContent = 'Kopiert!';
@@ -971,12 +1192,12 @@ if (btnDownloadAiPrompt) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'DEPLOY.md';
+    a.download = currentAiPromptMode === 'cli' ? 'DEPLOY-CLI.md' : 'DEPLOY.md';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast('DEPLOY.md heruntergeladen', 'success');
+    showToast(`${a.download} heruntergeladen`, 'success');
   });
 }
 

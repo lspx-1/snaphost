@@ -87,6 +87,10 @@
         </button>
 
         <div class="sidebar-section-title">Dateien &amp; Scripts</div>
+        <a href="/DEPLOY-CLI.md" download="DEPLOY-CLI.md" class="sidebar-nav-item" style="font-size:0.78rem;font-family:var(--font-mono);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          <span>DEPLOY-CLI.md</span>
+        </a>
         <a href="/DEPLOY.md" download="DEPLOY.md" class="sidebar-nav-item" style="font-size:0.78rem;font-family:var(--font-mono);">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
           <span>DEPLOY.md</span>
@@ -710,20 +714,31 @@
       </div>
       <div class="modal-content">
         <div class="ai-prompt-topbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.85rem;flex-wrap:wrap;gap:0.75rem;">
-          <p class="text-subdued" style="margin:0;max-width:540px;font-size:0.85rem;">
-            Diesen Prompt an deinen KI-Agenten übergeben (zusammen mit einem API-Schlüssel), damit dieser vollautomatisch deployen, debuggen und aktualisieren kann.
-          </p>
+          <div class="segmented-control" id="ai-prompt-mode-switcher">
+            <button type="button" class="segment-btn active" id="btn-prompt-mode-cli" data-mode="cli">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+              <span>CLI / Command (Standard)</span>
+            </button>
+            <button type="button" class="segment-btn" id="btn-prompt-mode-api" data-mode="api">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+              <span>REST-API (cURL / Token)</span>
+            </button>
+          </div>
           <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
             <button type="button" class="btn btn-primary btn-sm" id="btn-copy-ai-prompt" title="Prompt in die Zwischenablage kopieren">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               <span id="btn-copy-ai-label">Prompt kopieren</span>
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-download-ai-prompt" title="Prompt als DEPLOY.md Datei herunterladen">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-download-ai-prompt" title="Prompt als Datei herunterladen">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               <span>Als Datei herunterladen</span>
             </button>
           </div>
         </div>
+
+        <p class="text-subdued" id="ai-prompt-mode-hint" style="margin:0 0 0.85rem 0;font-size:0.83rem;line-height:1.45;">
+          <strong style="color:var(--text-primary);">Empfohlen &amp; Sicher:</strong> KI-Agenten nutzen direkt <code>npx snaphost</code>. Das Token wird sicher lokal aus <code>~/.snaphost/config.json</code> bezogen und taucht nicht im Chatverlauf auf.
+        </p>
 
         <div class="code-view-container">
           <pre class="code-view-block" style="max-height:520px;overflow-y:auto;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:1rem;font-family:var(--font-mono);font-size:0.82rem;line-height:1.55;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;"><code id="code-ai-prompt">Lade KI-Prompt...</code></pre>

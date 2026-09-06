@@ -148,6 +148,20 @@ app.get(['/DEPLOY.md', '/deploy.md', '/AI-DEPLOY.md', '/ai-deploy.md'], (req, re
   res.send(content);
 });
 
+app.get(['/DEPLOY-CLI.md', '/deploy-cli.md', '/CLI.md'], (req, res) => {
+  const { adminHost, serverUrl, appsRoot } = getServerUrls();
+  const filePath = path.join(rootDir, 'DEPLOY-CLI.md');
+  let content = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : '';
+
+  content = content.replace(/<slug>\.DEINE_SNAPHOST_DOMAIN/g, `<slug>.${appsRoot}`);
+  content = content.replace(/https:\/\/DEINE_SNAPHOST_DOMAIN/g, serverUrl);
+  content = content.replace(/DEINE_SNAPHOST_DOMAIN/g, adminHost);
+
+  res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+  res.setHeader('Content-Disposition', 'inline; filename="DEPLOY-CLI.md"');
+  res.send(content);
+});
+
 app.get('/deploy.ps1', (req, res) => {
   const { serverUrl } = getServerUrls();
   const scriptPath = path.join(rootDir, 'src', 'scripts', 'deploy.ps1');
@@ -289,3 +303,6 @@ process.on('SIGINT', () => {
     process.exit(0);
   });
 });
+
+export { app, server };
+export default app;
