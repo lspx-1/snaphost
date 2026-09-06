@@ -420,7 +420,8 @@ apiRouter.delete('/keys/:id', requireAuth, (req, res) => {
 // 9. System Info & AI Prompt Helper
 // -------------------------------------------------------------
 apiRouter.get('/info', requireAuth, (req, res) => {
-  const sampleKey = '$DEPLOY_TOKEN';
+  const keys = appDb.listApiKeys();
+  const sampleKey = keys.length > 0 ? keys[0].key : '$DEPLOY_TOKEN';
   const deployUrl = config.rootDomain === 'localhost'
     ? `http://localhost:${config.port}/api/deploy`
     : `https://${config.adminSubdomain ? config.adminSubdomain + '.' : ''}${config.rootDomain}/api/deploy`;

@@ -873,8 +873,17 @@ document.getElementById('btn-ai-guide')?.addEventListener('click', () => {
 });
 
 function getQuickstartServerUrl() {
-  const root = systemInfo.rootDomain || (window.location.hostname === 'localhost' ? `localhost:${window.location.port || 3000}` : window.location.host);
-  const protocol = window.location.protocol === 'http:' && (root.includes('localhost') || root.includes('127.0.0.1')) ? 'http://' : 'https://';
+  if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin !== 'null') {
+    return window.location.origin;
+  }
+  if (systemInfo.deployEndpoint) {
+    return systemInfo.deployEndpoint.replace(/\/api\/deploy$/, '');
+  }
+  if (systemInfo.adminSubdomain && systemInfo.rootDomain && systemInfo.rootDomain !== 'localhost') {
+    return `https://${systemInfo.adminSubdomain}.${systemInfo.rootDomain}`;
+  }
+  const root = systemInfo.rootDomain || 'localhost:3000';
+  const protocol = (root.includes('localhost') || root.includes('127.0.0.1')) ? 'http://' : 'https://';
   return `${protocol}${root}`;
 }
 
@@ -883,6 +892,8 @@ async function updateAiPromptGuide() {
   if (!codeEl) return;
   const serverUrl = getQuickstartServerUrl();
   const hostOnly = serverUrl.replace(/^https?:\/\//, '');
+  const appsDomain = systemInfo.rootDomain || hostOnly;
+  const apiKey = systemInfo.sampleApiKey || '$DEPLOY_TOKEN';
 
   // Load full specification from DEPLOY.md in background
   try {
@@ -891,13 +902,16 @@ async function updateAiPromptGuide() {
       let text = await res.text();
       // Dynamically substitute domain placeholders with actual server domain
       text = text.replace(/https:\/\/DEINE_SNAPHOST_DOMAIN/g, serverUrl);
+      text = text.replace(/<slug>\.DEINE_SNAPHOST_DOMAIN/g, `<slug>.${appsDomain}`);
       text = text.replace(/DEINE_SNAPHOST_DOMAIN/g, hostOnly);
+      if (apiKey && apiKey !== '$DEPLOY_TOKEN') {
+        text = text.replace(/DEIN_API_KEY/g, apiKey);
+      }
       codeEl.textContent = text;
       return;
     }
   } catch (_) {}
 
-  const apiKey = systemInfo.sampleApiKey || '$DEPLOY_TOKEN';
   const endpoint = `${serverUrl}/api/deploy`;
   const baseApi = `${serverUrl}/api`;
 
