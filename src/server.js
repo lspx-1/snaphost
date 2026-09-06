@@ -114,18 +114,42 @@ app.use(express.static(publicDir));
 app.use('/auth', authRouter);
 app.use('/api', apiRouter);
 
+// Helper to resolve admin/server URL vs apps root domain
+function getServerUrls() {
+  const isLocal = config.rootDomain === 'localhost';
+  const adminHost = isLocal
+    ? `localhost:${config.port}`
+    : (config.adminSubdomain ? `${config.adminSubdomain}.${config.rootDomain}` : config.rootDomain);
+  const serverUrl = isLocal ? `http://${adminHost}` : `https://${adminHost}`;
+  const appsRoot = isLocal ? `localhost:${config.port}` : config.rootDomain;
+  return { adminHost, serverUrl, appsRoot };
+}
+
 // Dynamic CLI Script & Prompt Download Endpoints
 app.get(['/DEPLOY.md', '/deploy.md', '/AI-DEPLOY.md', '/ai-deploy.md'], (req, res) => {
-  const root = config.rootDomain === 'localhost' ? `localhost:${config.port}` : config.rootDomain;
+  const { adminHost, serverUrl, appsRoot } = getServerUrls();
   let content = fs.readFileSync(path.join(rootDir, 'DEPLOY.md'), 'utf-8');
-  content = content.replace(/DEINE_SNAPHOST_DOMAIN/g, root).replace(/DEIN_API_KEY/g, '$DEPLOY_TOKEN');
+
+  // Replace apps root domain for sites, server URL for API/dashboard endpoints
+  content = content.replace(/<slug>\.DEINE_SNAPHOST_DOMAIN/g, `<slug>.${appsRoot}`);
+  content = content.replace(/https:\/\/DEINE_SNAPHOST_DOMAIN/g, serverUrl);
+  content = content.replace(/DEINE_SNAPHOST_DOMAIN/g, adminHost);
+
+  try {
+    const keys = appDb.listApiKeys();
+    const sampleKey = keys.length > 0 ? keys[0].key : '$DEPLOY_TOKEN';
+    content = content.replace(/DEIN_API_KEY/g, sampleKey);
+  } catch (_) {
+    content = content.replace(/DEIN_API_KEY/g, '$DEPLOY_TOKEN');
+  }
+
   res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="DEPLOY.md"');
+  res.setHeader('Content-Disposition', 'inline; filename="DEPLOY.md"');
   res.send(content);
 });
 
 app.get('/deploy.ps1', (req, res) => {
-  const serverUrl = config.rootDomain === 'localhost' ? `http://localhost:${config.port}` : `https://${config.rootDomain}`;
+  const { serverUrl } = getServerUrls();
   const scriptPath = path.join(rootDir, 'src', 'scripts', 'deploy.ps1');
   const script = fs.readFileSync(scriptPath, 'utf-8').replace(/\{\{SERVER_URL\}\}/g, serverUrl);
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -134,7 +158,7 @@ app.get('/deploy.ps1', (req, res) => {
 });
 
 app.get('/deploy.sh', (req, res) => {
-  const serverUrl = config.rootDomain === 'localhost' ? `http://localhost:${config.port}` : `https://${config.rootDomain}`;
+  const { serverUrl } = getServerUrls();
   const scriptPath = path.join(rootDir, 'src', 'scripts', 'deploy.sh');
   const script = fs.readFileSync(scriptPath, 'utf-8').replace(/\{\{SERVER_URL\}\}/g, serverUrl);
   res.setHeader('Content-Type', 'text/x-sh; charset=utf-8');
