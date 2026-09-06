@@ -1675,6 +1675,57 @@ document.getElementById('nav-item-settings')?.addEventListener('click', () => {
   document.getElementById('modal-dashboard-settings')?.classList.remove('hidden');
 });
 
+document.getElementById('btn-sidebar-password')?.addEventListener('click', () => {
+  document.getElementById('modal-dashboard-settings')?.classList.remove('hidden');
+  setTimeout(() => document.getElementById('input-current-password')?.focus(), 100);
+});
+
+document.getElementById('btn-submit-change-password')?.addEventListener('click', async () => {
+  const currentInput = document.getElementById('input-current-password');
+  const newInput = document.getElementById('input-new-password');
+  const btn = document.getElementById('btn-submit-change-password');
+
+  const currentPassword = currentInput?.value;
+  const newPassword = newInput?.value;
+
+  if (!currentPassword) {
+    showToast('Bitte aktuelles Passwort eingeben', 'error');
+    currentInput?.focus();
+    return;
+  }
+  if (!newPassword || newPassword.trim().length < 4) {
+    showToast('Neues Passwort muss mindestens 4 Zeichen lang sein', 'error');
+    newInput?.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  const origText = btn.innerHTML;
+  btn.textContent = 'Speichere...';
+
+  try {
+    const res = await fetch('/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword: newPassword.trim() })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'Passwort erfolgreich geändert!', 'success');
+      if (currentInput) currentInput.value = '';
+      if (newInput) newInput.value = '';
+      document.getElementById('modal-dashboard-settings')?.classList.add('hidden');
+    } else {
+      showToast(data.error || 'Fehler beim Ändern des Passworts', 'error');
+    }
+  } catch (err) {
+    showToast('Verbindungsfehler zum Server', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+  }
+});
+
 document.getElementById('btn-sidebar-logout')?.addEventListener('click', async () => {
   await fetch('/auth/logout', { method: 'POST' });
   showToast('Abgemeldet');

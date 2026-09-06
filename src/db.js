@@ -256,6 +256,38 @@ export const appDb = {
       return found;
     }
     return null;
+  },
+
+  getSetting(key) {
+    if (!key) return null;
+    const res = stmts.getSetting.get(key);
+    return res ? res.value : null;
+  },
+
+  setSetting(key, value) {
+    if (!key) return;
+    stmts.setSetting.run(key, value.toString());
+  },
+
+  verifyAdminPassword(password) {
+    if (!password || typeof password !== 'string') return false;
+    const inputClean = password.trim();
+    const customHash = this.getSetting('admin_password_hash');
+    const inputHash = crypto.createHash('sha256').update(inputClean).digest('hex');
+    if (customHash) {
+      return customHash === inputHash;
+    }
+    // Default fallback to config.adminPassword
+    return inputClean === config.adminPassword;
+  },
+
+  setAdminPassword(newPassword) {
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 4) {
+      throw new Error('Das neue Passwort muss mindestens 4 Zeichen lang sein.');
+    }
+    const hash = crypto.createHash('sha256').update(newPassword.trim()).digest('hex');
+    this.setSetting('admin_password_hash', hash);
+    return true;
   }
 };
 

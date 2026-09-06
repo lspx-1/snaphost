@@ -4,6 +4,9 @@
   "description": "Self-hosted ephemeral & permanent preview platform for static sites and interactive multiplayer games",
   "main": "src/server.js",
   "type": "module",
+  "bin": {
+    "snaphost": "./bin/snaphost.js"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js"

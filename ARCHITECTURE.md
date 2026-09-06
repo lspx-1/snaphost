@@ -1,4 +1,4 @@
-﻿# 🏛️ SnapHost Architektur & Entwickler-Handbuch
+# 🏛️ SnapHost Architektur & Entwickler-Handbuch
 
 > **Zweck dieser Datei:**  
 > Dieses Dokument dient als zentrale Wissensbasis ("Developer & Agent Handover") für SnapHost. Wenn ein neuer KI-Agent (Antigravity, Cursor, Claude, ChatGPT, Gemini) oder Entwickler in diesem Repository gestartet wird, liefert diese Datei sofort den kompletten Überblick über Infrastruktur, Netzwerk, Architektur, Designentscheidungen ("Warum so gebaut?") und Erweiterungsmöglichkeiten.
@@ -54,6 +54,9 @@ WEB2/
 ├── package.json          # Node.js Dependencies (Express, Dockerode, AdmZip, HttpProxy, Node:sqlite)
 ├── snaphost.service      # Systemd Unit-Datei für den Linux-Server
 ├── update.sh             # 1-Klick-Updateskript für den Server (git pull, npm install, restart)
+│
+├── bin/                  # CLI-Werkzeuge
+│   └── snaphost.js       # Offizielles SnapHost CLI-Tool (deploy, logs, status, restart, etc.)
 │
 ├── public/               # Frontend (Dashboard SPA)
 │   ├── index.html        # Modernes Dashboard mit Karten- & Tabellenansicht, Modals, Tabs

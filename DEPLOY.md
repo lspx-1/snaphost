@@ -19,9 +19,28 @@ Diese Datei beschreibt, wie ein Webprojekt auf den SnapHost-Server hochgeladen, 
 
 ---
 
-## 1. Bereitstellen per CLI-Skript oder API
+## 1. Bereitstellen per SnapHost CLI (Empfohlen) oder API
 
-### Mit dem CLI-Skript:
+### Mit der SnapHost CLI (`snaphost` oder `npx snaphost`):
+> **Tipp für KI-Assistenten:** Der API-Token ist sicher lokal in `~/.snaphost/config.json` hinterlegt (`snaphost login`). Du musst den Token nicht in Umgebungsvariablen oder Befehlen übergeben!
+
+```bash
+# Projekt bereitstellen:
+npx snaphost deploy                                      # Aktueller Ordner (oder auto-detect dist/)
+npx snaphost deploy ./dist --slug mein-spiel             # Build-Ordner mit festem Namen
+npx snaphost deploy . --slug mein-spiel --ttl permanent   # Dauerhafter Link
+npx snaphost deploy . --password geheim                  # Mit Passwortschutz
+
+# Debugging & Wartung:
+npx snaphost logs mein-spiel --tail 150                  # Live-Logs lesen (essentiell bei Fehlern!)
+npx snaphost status mein-spiel                           # Status, Version & Container-ID prüfen
+npx snaphost restart mein-spiel                          # Container neu starten
+npx snaphost rebuild mein-spiel                          # Aus vorhandenen Dateien neu bauen
+npx snaphost rollback mein-spiel                         # Rollback zur vorherigen Version
+npx snaphost list                                        # Alle Apps tabellarisch anzeigen
+```
+
+### Mit PowerShell / Shell Skript:
 ```powershell
 # Windows PowerShell
 Invoke-WebRequest https://DEINE_SNAPHOST_DOMAIN/deploy.ps1 -OutFile deploy.ps1
