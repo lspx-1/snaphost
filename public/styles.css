@@ -592,6 +592,18 @@ input:focus, select:focus {
   font-size: 0.8rem;
 }
 
+.btn-xs {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.btn-secondary.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
 .btn-icon-only {
   padding: 0.5rem;
 }

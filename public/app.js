@@ -1522,9 +1522,12 @@ function switchInspectorTab(targetKey) {
   } else if (targetId === 'tab-details-logs' && activeInspectorApp) {
     loadInspectorLogs(activeInspectorApp.id);
     startLogPolling();
-  } else if (targetId === 'tab-details-data' && activeInspectorApp) {
+  } else if (targetId === 'tab-details-data') {
     stopLogPolling();
-    loadAppData(activeInspectorApp.id);
+    const idToLoad = activeInspectorApp?.id || activeInspectorApp?.subdomain;
+    if (idToLoad) {
+      loadAppData(idToLoad);
+    }
   } else {
     stopLogPolling();
   }
@@ -1796,18 +1799,27 @@ document.getElementById('btn-details-logs-copy').addEventListener('click', () =>
 // Inspector Data & Database Management
 // -------------------------------------------------------------
 window.loadAppData = async function(appId) {
-  if (!appId) return;
+  const targetAppId = appId || activeInspectorApp?.id || activeInspectorApp?.subdomain;
+  if (!targetAppId) return;
+
   const sizeEl = document.getElementById('data-total-size');
   const countEl = document.getElementById('data-file-count');
   const statusEl = document.getElementById('data-sqlite-status');
   const filesListEl = document.getElementById('data-files-list');
   const sqliteCard = document.getElementById('data-sqlite-card');
 
+  if (statusEl) statusEl.innerHTML = '<span class="status-dot building"></span> Lade Status...';
+  if (filesListEl && !filesListEl.querySelector('table')) {
+    filesListEl.innerHTML = '<div class="text-subdued" style="font-size:0.85rem;padding:0.5rem 0;">Lade Dateien...</div>';
+  }
+
   try {
-    const res = await fetch(`/api/apps/${appId}/data`);
+    const res = await fetch(`/api/apps/${targetAppId}/data`);
     const data = await res.json();
     if (!data.ok && !data.success) {
-      if (statusEl) statusEl.textContent = 'Fehler beim Laden';
+      const errMsg = data.error || 'Fehler beim Laden';
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--status-danger, #f87171);">${escapeHtml(errMsg)}</span>`;
+      if (filesListEl) filesListEl.innerHTML = `<div class="text-subdued" style="color:var(--status-danger, #f87171);font-size:0.85rem;padding:0.5rem 0;">${escapeHtml(errMsg)}</div>`;
       return;
     }
 
@@ -1860,23 +1872,29 @@ window.loadAppData = async function(appId) {
 
       if (sqliteCard) {
         sqliteCard.classList.remove('hidden');
-        document.getElementById('data-sqlite-filename').textContent = `${st.sqlite.file} • ${st.sqlite.tables?.length || 0} Tabelle(n)`;
+        const dbFileName = document.getElementById('data-sqlite-filename');
+        if (dbFileName) {
+          dbFileName.textContent = `${st.sqlite.file} • ${st.sqlite.tables?.length || 0} Tabelle(n)`;
+        }
         const pillsEl = document.getElementById('data-sqlite-table-pills');
         if (pillsEl) {
           if (!st.sqlite.tables || st.sqlite.tables.length === 0) {
             pillsEl.innerHTML = '<span class="text-subdued" style="font-size:0.8rem;">Keine Tabellen angelegt</span>';
-            document.getElementById('data-sqlite-thead').innerHTML = '';
-            document.getElementById('data-sqlite-tbody').innerHTML = '<tr><td class="text-subdued" style="padding:1rem;">Die Datenbankdatei existiert, enthält aber noch keine Tabellen.</td></tr>';
-            document.getElementById('data-sqlite-pagination-info').textContent = '0 Tabellen';
+            const thead = document.getElementById('data-sqlite-thead');
+            const tbody = document.getElementById('data-sqlite-tbody');
+            const pag = document.getElementById('data-sqlite-pagination-info');
+            if (thead) thead.innerHTML = '';
+            if (tbody) tbody.innerHTML = '<tr><td class="text-subdued" style="padding:1rem;">Die Datenbankdatei existiert, enthält aber noch keine Tabellen.</td></tr>';
+            if (pag) pag.textContent = '0 Tabellen';
           } else {
             pillsEl.innerHTML = st.sqlite.tables.map((t, idx) => `
-              <button type="button" class="btn btn-secondary btn-xs ${idx === 0 ? 'active' : ''}" id="btn-tbl-${escapeHtml(t.name)}" onclick="loadSqliteTable('${appId}', '${escapeHtml(st.sqlite.file)}', '${escapeHtml(t.name)}')">
+              <button type="button" class="btn btn-secondary btn-xs ${idx === 0 ? 'active' : ''}" id="btn-tbl-${escapeHtml(t.name)}" onclick="loadSqliteTable('${targetAppId}', '${escapeHtml(st.sqlite.file)}', '${escapeHtml(t.name)}')">
                 ${escapeHtml(t.name)} (${t.rowCount})
               </button>
             `).join('');
 
             // Load first table by default
-            loadSqliteTable(appId, st.sqlite.file, st.sqlite.tables[0].name);
+            loadSqliteTable(targetAppId, st.sqlite.file, st.sqlite.tables[0].name);
           }
         }
       }
@@ -1885,12 +1903,17 @@ window.loadAppData = async function(appId) {
       if (sqliteCard) sqliteCard.classList.add('hidden');
     }
   } catch (err) {
-    if (statusEl) statusEl.textContent = 'Fehler beim Laden';
+    const errMsg = `Fehler: ${err.message || 'Verbindungsabbruch'}`;
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--status-danger, #f87171);">${escapeHtml(errMsg)}</span>`;
+    if (filesListEl) filesListEl.innerHTML = `<div class="text-subdued" style="color:var(--status-danger, #f87171);font-size:0.85rem;padding:0.5rem 0;">${escapeHtml(errMsg)}</div>`;
   }
 };
 
 window.loadSqliteTable = async function(appId, file, tableName) {
-  if (!appId || !tableName) return;
+  const targetAppId = appId || activeInspectorApp?.id || activeInspectorApp?.subdomain;
+  if (!targetAppId || !tableName) return;
+  file = file || 'app.db';
+
   document.querySelectorAll('#data-sqlite-table-pills button').forEach(b => {
     b.classList.toggle('active', b.id === `btn-tbl-${tableName}`);
   });
@@ -1899,13 +1922,15 @@ window.loadSqliteTable = async function(appId, file, tableName) {
   const tbody = document.getElementById('data-sqlite-tbody');
   const pagInfo = document.getElementById('data-sqlite-pagination-info');
 
-  tbody.innerHTML = '<tr><td colspan="10" class="text-subdued" style="padding:1rem;text-align:center;">Lade Datensätze...</td></tr>';
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="10" class="text-subdued" style="padding:1rem;text-align:center;">Lade Datensätze...</td></tr>';
+  }
 
   try {
-    const res = await fetch(`/api/apps/${appId}/data/table?file=${encodeURIComponent(file)}&table=${encodeURIComponent(tableName)}&limit=50`);
+    const res = await fetch(`/api/apps/${targetAppId}/data/table?file=${encodeURIComponent(file)}&table=${encodeURIComponent(tableName)}&limit=50`);
     const data = await res.json();
     if (!data.ok && !data.success) {
-      tbody.innerHTML = `<tr><td class="text-subdued" style="padding:1rem;color:#f87171;">${escapeHtml(data.error || 'Fehler beim Laden')}</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td class="text-subdued" style="padding:1rem;color:var(--status-danger, #f87171);">${escapeHtml(data.error || 'Fehler beim Laden')}</td></tr>`;
       return;
     }
 
@@ -1913,36 +1938,43 @@ window.loadSqliteTable = async function(appId, file, tableName) {
     const rows = data.rows || [];
 
     if (columns.length === 0) {
-      thead.innerHTML = '';
-      tbody.innerHTML = '<tr><td class="text-subdued" style="padding:1rem;">Tabelle enthält keine Spalten.</td></tr>';
-      pagInfo.textContent = '0 Spalten';
+      if (thead) thead.innerHTML = '';
+      if (tbody) tbody.innerHTML = '<tr><td class="text-subdued" style="padding:1rem;">Tabelle enthält keine Spalten.</td></tr>';
+      if (pagInfo) pagInfo.textContent = '0 Spalten';
       return;
     }
 
-    thead.innerHTML = `<tr>${columns.map(c => `<th>${escapeHtml(c.name)} ${c.pk ? '<span style="color:var(--primary);font-size:0.7rem;">(PK)</span>' : ''}</th>`).join('')}</tr>`;
-
-    if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="${columns.length}" class="text-subdued" style="padding:1rem;text-align:center;">Tabelle ist leer (0 Einträge).</td></tr>`;
-    } else {
-      tbody.innerHTML = rows.map(r => `
-        <tr>
-          ${columns.map(c => {
-            const val = r[c.name];
-            const str = (val === null || val === undefined) ? '<span class="text-subdued">NULL</span>' : escapeHtml(typeof val === 'object' ? JSON.stringify(val) : String(val));
-            return `<td class="font-mono">${str}</td>`;
-          }).join('')}
-        </tr>
-      `).join('');
+    if (thead) {
+      thead.innerHTML = `<tr>${columns.map(c => `<th>${escapeHtml(c.name)} ${c.pk ? '<span style="color:var(--primary);font-size:0.7rem;">(PK)</span>' : ''}</th>`).join('')}</tr>`;
     }
 
-    pagInfo.textContent = `Tabelle '${tableName}': ${rows.length} von ${data.total} Einträgen (Limit: 50)`;
+    if (tbody) {
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${columns.length}" class="text-subdued" style="padding:1rem;text-align:center;">Tabelle ist leer (0 Einträge).</td></tr>`;
+      } else {
+        tbody.innerHTML = rows.map(r => `
+          <tr>
+            ${columns.map(c => {
+              const val = r[c.name];
+              const str = (val === null || val === undefined) ? '<span class="text-subdued">NULL</span>' : escapeHtml(typeof val === 'object' ? JSON.stringify(val) : String(val));
+              return `<td class="font-mono">${str}</td>`;
+            }).join('')}
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (pagInfo) {
+      pagInfo.textContent = `Tabelle '${tableName}': ${rows.length} von ${data.total} Einträgen (Limit: 50)`;
+    }
   } catch (err) {
-    tbody.innerHTML = `<tr><td class="text-subdued" style="padding:1rem;color:#f87171;">Netzwerkfehler: ${escapeHtml(err.message)}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td class="text-subdued" style="padding:1rem;color:var(--status-danger, #f87171);">Netzwerkfehler: ${escapeHtml(err.message)}</td></tr>`;
   }
 };
 
 document.getElementById('btn-data-refresh')?.addEventListener('click', () => {
-  if (activeInspectorApp) loadAppData(activeInspectorApp.id);
+  const idToLoad = activeInspectorApp?.id || activeInspectorApp?.subdomain;
+  if (idToLoad) loadAppData(idToLoad);
 });
 
 document.getElementById('btn-data-reset')?.addEventListener('click', async () => {
