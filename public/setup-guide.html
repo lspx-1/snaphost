@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnapHost &mdash; Production Deployment &amp; Server Setup Guide</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-body: #0b0c10;
+      --bg-surface: #12141a;
+      --bg-surface-elevated: #171a22;
+      --bg-card: #1c202b;
+      --bg-input: #0e1015;
+      --border-subtle: #252a37;
+      --border-accent: #333a4d;
+      
+      --accent-primary: #38bdf8;
+      --accent-primary-hover: #0284c7;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      
+      --status-success: #10b981;
+      --status-warning: #f59e0b;
+      --status-danger: #ef4444;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subdued: #64748b;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 6rem;
+    }
+
+    /* Top Navigation Header */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(18, 20, 26, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .badge-guide {
+      background: var(--accent-glow);
+      color: var(--accent-primary);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.9rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: #0b0c10;
+      font-weight: 600;
+    }
+    .btn-primary:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border-color: var(--border-accent);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-card);
+      border-color: var(--accent-primary);
+    }
+
+    .btn-sm {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.75rem;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1040px;
+      margin: 2rem auto;
+      padding: 0 1.25rem;
+    }
+
+    /* Hero Banner */
+    .hero {
+      text-align: center;
+      padding: 2.5rem 1rem 2rem;
+    }
+
+    .hero h1 {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 60%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* Interactive Live Parameter Card */
+    .config-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--accent-primary);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 8px 32px rgba(56, 189, 248, 0.08);
+    }
+
+    .config-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .config-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .config-badge {
+      font-size: 0.75rem;
+      color: var(--accent-primary);
+      background: var(--accent-glow);
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .input-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .input-field label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+
+    .input-field input {
+      background: var(--bg-input);
+      border: 1px solid var(--border-accent);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: var(--radius-sm);
+      outline: none;
+      transition: all 0.2s;
+    }
+    .input-field input:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    /* Progress Tracker Bar */
+    .progress-bar-wrap {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 8px;
+      background: var(--bg-input);
+      border-radius: 9999px;
+      overflow: hidden;
+      min-width: 180px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0284c7, #10b981);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-stats {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Step Card */
+    .step-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      margin-bottom: 2rem;
+      overflow: hidden;
+      transition: border-color 0.25s ease;
+    }
+    .step-card:hover {
+      border-color: var(--border-accent);
+    }
+    .step-card.completed {
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .step-header {
+      padding: 1.25rem 1.5rem;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .step-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 2px solid var(--accent-primary);
+      color: var(--accent-primary);
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+    }
+    .step-card.completed .step-number {
+      background: var(--status-success);
+      border-color: var(--status-success);
+      color: #fff;
+    }
+
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .step-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .step-checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    .step-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--status-success);
+      cursor: pointer;
+    }
+
+    .step-body {
+      padding: 1.5rem;
+    }
+
+    /* Content Elements inside Step */
+    .info-alert {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 4px solid var(--accent-primary);
+      padding: 0.9rem 1.15rem;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      line-height: 1.55;
+    }
+
+    .warning-alert {
+      background: rgba(245, 158, 11, 0.09);
+      border-left: 4px solid var(--status-warning);
+      padding: 0.9rem 1.15rem;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+      color: #fef08a;
+      line-height: 1.55;
+    }
+
+    .code-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin: 0.85rem 0 1.25rem;
+      overflow: hidden;
+    }
+
+    .code-box-header {
+      background: #151821;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.5rem 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .code-title {
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+
+    pre {
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* Clean Checklist */
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin: 1rem 0;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      font-size: 0.87rem;
+      color: #cbd5e1;
+    }
+
+    .check-icon {
+      color: var(--status-success);
+      margin-top: 0.15rem;
+      flex-shrink: 0;
+    }
+
+    /* Table */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 1rem 0 1.25rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      padding: 0.65rem 1rem;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: #e2e8f0;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .font-mono {
+      font-family: var(--font-mono);
+    }
+
+    .tag-badge {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .tag-dns {
+      background: rgba(148, 163, 184, 0.15);
+      color: #94a3b8;
+    }
+
+    .tag-wildcard {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+    }
+
+    /* Footer */
+    .footer-bar {
+      text-align: center;
+      margin-top: 3rem;
+      color: var(--text-subdued);
+      font-size: 0.8rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.7rem; }
+      .step-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+      .config-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <nav class="top-nav">
+    <div class="brand-group">
+      <div class="brand-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <span class="brand-title">SnapHost</span>
+      <span class="badge-guide">Deployment Master Guide</span>
+    </div>
+
+    <div class="nav-actions">
+      <a href="/" class="btn btn-secondary btn-sm" title="Zurück zum Dashboard">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        <span>Dashboard öffnen</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- HERO SECTION -->
+    <header class="hero">
+      <h1>Production Server Setup</h1>
+      <p>Schritt-für-Schritt-Leitfaden zur Bereitstellung von SnapHost auf deinem Proxmox-Server &ndash; mit Cloudflare, Nginx Proxy Manager (NPM) und automatischem 1-Klick-Update-Workflow.</p>
+    </header>
+
+    <!-- INTERACTIVE LIVE CONFIGURATION CARD -->
+    <section class="config-card">
+      <div class="config-card-header">
+        <div class="config-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Deine Server- &amp; Domain-Parameter</span>
+        </div>
+        <span class="config-badge">Live-Vorschau aktiv &bull; Passt alle Befehle unten dynamisch an</span>
+      </div>
+
+      <div class="config-grid">
+        <div class="input-field">
+          <label for="cfg-domain">Basis-Domain (Root Domain)</label>
+          <input type="text" id="cfg-domain" value="apps.meinedomain.de" placeholder="z. B. apps.meinedomain.de">
+        </div>
+        <div class="input-field">
+          <label for="cfg-wan-ip">Öffentliche IP (Cloudflare WAN)</label>
+          <input type="text" id="cfg-wan-ip" value="123.45.67.89" placeholder="z. B. 123.45.67.89">
+        </div>
+        <div class="input-field">
+          <label for="cfg-lan-ip">Interne Server-IP (Proxmox LAN)</label>
+          <input type="text" id="cfg-lan-ip" value="192.168.1.50" placeholder="z. B. 192.168.1.50">
+        </div>
+        <div class="input-field">
+          <label for="cfg-password">Admin-Kennwort (Dashboard)</label>
+          <input type="text" id="cfg-password" value="SicheresAdminPasswort2026!" placeholder="Dein Master-Passwort">
+        </div>
+      </div>
+    </section>
+
+    <!-- PROGRESS TRACKER -->
+    <div class="progress-bar-wrap">
+      <span class="progress-stats" id="progress-text">0 von 5 Schritten abgeschlossen (0%)</span>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SCHRITT 1: PROXMOX -->
+    <!-- ========================================================================= -->
+    <article class="step-card" id="card-step-1">
+      <div class="step-header">
+        <div class="step-title-wrap">
+          <div class="step-number">1</div>
+          <div>
+            <h2 class="step-title">Proxmox: Container / VM vorbereiten</h2>
+            <p class="step-subtitle">Debian 12 / Ubuntu 24.04 mit Docker &amp; Node.js 22 LTS</p>
+          </div>
+        </div>
+        <label class="step-checkbox-wrap">
+          <input type="checkbox" class="step-checkbox" onchange="toggleStep(1, this.checked)">
+          <span style="font-size:0.8rem;color:var(--text-muted);">Als erledigt markieren</span>
+        </label>
+      </div>
+
+      <div class="step-body">
+        <div class="warning-alert">
+          <strong>Wichtig bei Proxmox LXC-Containern:</strong><br>
+          Wenn du einen schlanken LXC-Container erstellst, öffne im Proxmox-Webinterface den Container &rarr; <code>Options</code> &rarr; <code>Features</code> &rarr; Haken bei <strong>Nesting</strong> (Verschachtelung) und <strong>keyctl</strong> setzen. Nur damit kann Docker innerhalb des Containers Container für Node.js-Apps und Multiplayer-Server starten!
+        </div>
+
+        <p style="font-size:0.88rem;color:#cbd5e1;margin-bottom:0.75rem;">
+          Öffne die Shell deines neuen Proxmox-Servers und führe folgenden Befehl aus, um alles Nötige auf einmal zu installieren:
+        </p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span class="code-title">Terminal &bull; Basissystem, Docker &amp; Node.js 22</span>
+            <button class="btn btn-secondary btn-sm" onclick="copySnippet('cmd-proxmox-setup')">Kopieren</button>
+          </div>
+          <pre id="cmd-proxmox-setup"><code>apt update && apt install -y curl git docker.io build-essential
+systemctl enable --now docker
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt install -y nodejs</code></pre>
+        </div>
+
+        <p style="font-size:0.82rem;color:var(--text-muted);">
+          &bull; Prüfe danach kurz mit <code>node -v</code> (sollte <code>v22.x</code> ausgeben) und <code>docker ps</code>, dass beides ohne Fehler läuft.
+        </p>
+      </div>
+    </article>
+
+    <!-- ========================================================================= -->
+    <!-- SCHRITT 2: CLOUDFLARE -->
+    <!-- ========================================================================= -->
+    <article class="step-card" id="card-step-2">
+      <div class="step-header">
+        <div class="step-title-wrap">
+          <div class="step-number">2</div>
+          <div>
+            <h2 class="step-title">Cloudflare: DNS &amp; Wildcard einrichten</h2>
+            <p class="step-subtitle">Subdomains und Wildcard-Routing für automatische Apps</p>
+          </div>
+        </div>
+        <label class="step-checkbox-wrap">
+          <input type="checkbox" class="step-checkbox" onchange="toggleStep(2, this.checked)">
+          <span style="font-size:0.8rem;color:var(--text-muted);">Als erledigt markieren</span>
+        </label>
+      </div>
+
+      <div class="step-body">
+        <p style="font-size:0.88rem;color:#cbd5e1;">
+          Damit SnapHost für jede Bereitstellung automatisch eine eigene Subdomain (z. B. <code class="font-mono" id="cf-preview-sub">mein-spiel.apps.meinedomain.de</code>) erzeugen kann, legst du bei Cloudflare zwei DNS-Einträge an:
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Typ</th>
+                <th>Name / Host</th>
+                <th>IPv4-Adresse (Ziel)</th>
+                <th>Proxy-Status (Wolke)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="tag-badge tag-dns">A</span></td>
+                <td><strong class="font-mono" id="cf-record-main">apps</strong></td>
+                <td><span class="font-mono text-wan-ip">123.45.67.89</span></td>
+                <td><span style="color:#94a3b8;">DNS only (Graue Wolke)</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag-badge tag-wildcard">A (Wildcard)</span></td>
+                <td><strong class="font-mono" id="cf-record-wildcard">*.apps</strong></td>
+                <td><span class="font-mono text-wan-ip">123.45.67.89</span></td>
+                <td><span style="color:#94a3b8;">DNS only (Graue Wolke)</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="info-alert">
+          <strong>Warum Graue Wolke (DNS only)?</strong><br>
+          Cloudflare unterstützt im kostenlosen Tarif kein Proxying (orange Wolke) auf mehrstufige Wildcards (wie <code>*.apps.domain.de</code>). Mit der grauen Wolke leitet Cloudflare die Anfragen direkt an deinen Nginx Proxy Manager weiter, und NPM bezieht automatisch ein kostenloses Let's Encrypt Wildcard-Zertifikat.
+        </div>
+
+        <h3 style="font-size:0.95rem;margin:1.2rem 0 0.5rem;color:#fff;">Cloudflare API-Token erstellen (für automatische SSL-Zertifikate)</h3>
+        <ul class="checklist">
+          <li class="checklist-item">
+            <span class="check-icon">&#10003;</span>
+            <span>Öffne dein Cloudflare Profil &rarr; <strong>API Tokens</strong> &rarr; Klicke auf <strong>Create Token</strong>.</span>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">&#10003;</span>
+            <span>Wähle die Vorlage <strong>Edit zone DNS</strong>.</span>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">&#10003;</span>
+            <span>Unter <em>Zone Resources</em> wählst du: <strong>Include &rarr; Specific zone &rarr; Deine Domain</strong>.</span>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">&#10003;</span>
+            <span>Speichere den Token und kopiere ihn &ndash; du trägst ihn gleich in NPM ein.</span>
+          </li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- ========================================================================= -->
+    <!-- SCHRITT 3: NGINX PROXY MANAGER -->
+    <!-- ========================================================================= -->
+    <article class="step-card" id="card-step-3">
+      <div class="step-header">
+        <div class="step-title-wrap">
+          <div class="step-number">3</div>
+          <div>
+            <h2 class="step-title">Nginx Proxy Manager (NPM): SSL &amp; Proxy Host</h2>
+            <p class="step-subtitle">Wildcard Let's Encrypt Zertifikat und WebSocket-Routing</p>
+          </div>
+        </div>
+        <label class="step-checkbox-wrap">
+          <input type="checkbox" class="step-checkbox" onchange="toggleStep(3, this.checked)">
+          <span style="font-size:0.8rem;color:var(--text-muted);">Als erledigt markieren</span>
+        </label>
+      </div>
+
+      <div class="step-body">
+        <h3 style="font-size:0.95rem;margin-bottom:0.6rem;color:#fff;">1. Wildcard-Zertifikat anfordern</h3>
+        <p style="font-size:0.85rem;color:#cbd5e1;margin-bottom:0.6rem;">
+          Gehe in NPM auf <strong>SSL Certificates</strong> &rarr; <strong>Add SSL Certificate</strong> &rarr; <strong>Let's Encrypt</strong>:
+        </p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span class="code-title">Domain Names im SSL-Fenster</span>
+            <button class="btn btn-secondary btn-sm" onclick="copySnippet('snippet-ssl-domains')">Kopieren</button>
+          </div>
+          <pre id="snippet-ssl-domains"><code>apps.meinedomain.de
+*.apps.meinedomain.de</code></pre>
+        </div>
+
+        <ul class="checklist">
+          <li class="checklist-item">
+            <span class="check-icon">&#10003;</span>
+            <span>Haken bei <strong>Use a DNS Challenge</strong> aktivieren.</span>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">&#10003;</span>
+            <span>DNS Provider: <strong>Cloudflare</strong> auswählen.</span>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">&#10003;</span>
+            <span>Füge deinen Cloudflare API-Token in das Feld ein: <code>dns_cloudflare_api_token = DEIN_TOKEN</code></span>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">&#10003;</span>
+            <span>Speichern &rarr; NPM erstellt das Wildcard-Zertifikat automatisch!</span>
+          </li>
+        </ul>
+
+        <h3 style="font-size:0.95rem;margin:1.5rem 0 0.6rem;color:#fff;">2. Proxy Host anlegen</h3>
+        <p style="font-size:0.85rem;color:#cbd5e1;margin-bottom:0.6rem;">
+          Gehe in NPM auf <strong>Hosts</strong> &rarr; <strong>Proxy Hosts</strong> &rarr; <strong>Add Proxy Host</strong>:
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              <tr>
+                <td><strong>Domain Names</strong></td>
+                <td><span class="font-mono text-domain-pair">apps.meinedomain.de, *.apps.meinedomain.de</span></td>
+              </tr>
+              <tr>
+                <td><strong>Scheme / Forward Host / Port</strong></td>
+                <td><span class="font-mono">http://<span class="text-lan-ip">192.168.1.50</span>:3000</span></td>
+              </tr>
+              <tr>
+                <td><strong>Aktivieren (Details-Tab)</strong></td>
+                <td>
+                  <span class="tag-badge" style="background:rgba(16,185,129,0.15);color:#10b981;">Cache Assets: AN</span>
+                  <span class="tag-badge" style="background:rgba(16,185,129,0.15);color:#10b981;">Block Common Exploits: AN</span>
+                  <span class="tag-badge" style="background:rgba(56,189,248,0.2);color:#38bdf8;">Websockets Support: AN (Wichtig!)</span>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>SSL-Tab</strong></td>
+                <td>Wildcard-Zertifikat auswählen &bull; <strong>Force SSL</strong> &amp; <strong>HTTP/2</strong> aktivieren</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:0.95rem;margin:1.2rem 0 0.5rem;color:#fff;">3. Advanced-Tab: Upload-Limits erhöhen</h3>
+        <p style="font-size:0.85rem;color:#cbd5e1;">Füge diesen Code im <strong>Advanced</strong>-Tab ein, damit große ZIP-Uploads bis 250 MB nicht von Nginx blockiert werden:</p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span class="code-title">NPM &bull; Custom Nginx Configuration (Advanced Tab)</span>
+            <button class="btn btn-secondary btn-sm" onclick="copySnippet('snippet-nginx-advanced')">Kopieren</button>
+          </div>
+          <pre id="snippet-nginx-advanced"><code>client_max_body_size 250M;
+proxy_read_timeout 300s;
+proxy_send_timeout 300s;</code></pre>
+        </div>
+      </div>
+    </article>
+
+    <!-- ========================================================================= -->
+    <!-- SCHRITT 4: SNAPHOST BEREITSTELLEN & STARTEN -->
+    <!-- ========================================================================= -->
+    <article class="step-card" id="card-step-4">
+      <div class="step-header">
+        <div class="step-title-wrap">
+          <div class="step-number">4</div>
+          <div>
+            <h2 class="step-title">SnapHost: Code auf den Server bringen &amp; Dienst starten</h2>
+            <p class="step-subtitle">Wähle: Entweder mit Git-Repository oder direkt per WinSCP / SCP</p>
+          </div>
+        </div>
+        <label class="step-checkbox-wrap">
+          <input type="checkbox" class="step-checkbox" onchange="toggleStep(4, this.checked)">
+          <span style="font-size:0.8rem;color:var(--text-muted);">Als erledigt markieren</span>
+        </label>
+      </div>
+
+      <div class="step-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+          <!-- OPTION A: GIT -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-accent);border-radius:var(--radius-md);padding:1.15rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+              <strong style="color:#38bdf8;font-size:0.95rem;">Weg A: Über Git (Empfohlen)</strong>
+              <span class="tag-badge" style="background:rgba(56,189,248,0.15);color:#38bdf8;">Beste Wahl</span>
+            </div>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem;">
+              Wenn du noch kein Git-Repo hast, erstelle es jetzt in 1 Minute lokal auf deinem PC in der PowerShell:
+            </p>
+            <div class="code-box" style="margin:0 0 0.75rem 0;">
+              <pre><code># 1. Lokal im WEB2-Ordner ausführen:
+git init
+git add .
+git commit -m "Initial SnapHost setup"
+
+# 2. Privates Repo auf GitHub erstellen, dann:
+git remote add origin https://github.com/DEIN_USER/snaphost.git
+git branch -M main
+git push -u origin main</code></pre>
+            </div>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.4rem;">Danach auf dem Proxmox-Server klonen:</p>
+            <div class="code-box" style="margin:0;">
+              <pre><code>git clone https://github.com/DEIN_USER/snaphost.git /opt/snaphost
+cd /opt/snaphost && npm install --omit=dev</code></pre>
+            </div>
+          </div>
+
+          <!-- OPTION B: OHNE GIT (WINSCP) -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-accent);border-radius:var(--radius-md);padding:1.15rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+              <strong style="color:#10b981;font-size:0.95rem;">Weg B: Direkt ohne Git (WinSCP)</strong>
+              <span class="tag-badge" style="background:rgba(16,185,129,0.15);color:#10b981;">Kein Account nötig</span>
+            </div>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem;">
+              Du kannst das Projekt auch einfach direkt von deinem PC auf den Server kopieren:
+            </p>
+            <ul class="checklist" style="margin:0 0 0.75rem 0;font-size:0.82rem;">
+              <li class="checklist-item">
+                <span class="check-icon">&#10003;</span>
+                <span>Installiere <strong>WinSCP</strong> (oder FileZilla) auf deinem PC.</span>
+              </li>
+              <li class="checklist-item">
+                <span class="check-icon">&#10003;</span>
+                <span>Verbinde dich per SFTP mit der IP deines Proxmox-Servers (<code class="text-lan-ip">192.168.1.50</code>) und Benutzer <code>root</code>.</span>
+              </li>
+              <li class="checklist-item">
+                <span class="check-icon">&#10003;</span>
+                <span>Ziehe den Ordner <code>WEB2</code> einfach per Drag &amp; Drop nach <code>/opt/snaphost</code> (ohne <code>node_modules</code>).</span>
+              </li>
+            </ul>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.4rem;">Auf dem Server dann Abhängigkeiten installieren:</p>
+            <div class="code-box" style="margin:0;">
+              <pre><code>cd /opt/snaphost
+npm install --omit=dev</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <h3 style="font-size:0.95rem;margin:1.4rem 0 0.5rem;color:#fff;">Produktions-.env Datei erstellen</h3>
+        <p style="font-size:0.85rem;color:#cbd5e1;margin-bottom:0.5rem;">Erstelle die Datei <code>/opt/snaphost/.env</code> mit deinen aktuellen Parametern:</p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span class="code-title">/opt/snaphost/.env (Dynamisch generiert)</span>
+            <button class="btn btn-secondary btn-sm" onclick="copySnippet('snippet-env-content')">Kopieren</button>
+          </div>
+          <pre id="snippet-env-content"><code>PORT=3000
+HOST=0.0.0.0
+NODE_ENV=production
+ROOT_DOMAIN=apps.meinedomain.de
+ADMIN_SUBDOMAIN=admin
+ADMIN_PASSWORD=SicheresAdminPasswort2026!
+JWT_SECRET=super-geheimer-zufallsschluessel-fuer-snaphost-2026-prod
+DATA_DIR=./data
+DEFAULT_TTL=24h
+MAX_UPLOAD_SIZE_MB=250</code></pre>
+        </div>
+
+        <h3 style="font-size:0.95rem;margin:1.4rem 0 0.5rem;color:#fff;">Systemd-Dienst aktivieren (Dauerhafter Hintergrundbetrieb)</h3>
+        <p style="font-size:0.85rem;color:#cbd5e1;margin-bottom:0.5rem;">Damit SnapHost beim Server-Neustart automatisch mitstartet:</p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span class="code-title">Terminal &bull; Systemd-Service aktivieren</span>
+            <button class="btn btn-secondary btn-sm" onclick="copySnippet('snippet-service-enable')">Kopieren</button>
+          </div>
+          <pre id="snippet-service-enable"><code>cp /opt/snaphost/snaphost.service /etc/systemd/system/snaphost.service
+systemctl daemon-reload
+systemctl enable --now snaphost
+
+# Status prüfen
+systemctl status snaphost</code></pre>
+        </div>
+
+        <div class="info-alert" style="background:rgba(16,185,129,0.08);border-color:var(--status-success);">
+          <strong style="color:var(--status-success);">Herzlichen Glückwunsch!</strong><br>
+          Dein SnapHost ist jetzt live! Rufe im Browser <code class="font-mono text-live-url">https://apps.meinedomain.de</code> auf und logge dich mit deinem Master-Kennwort ein.
+        </div>
+      </div>
+    </article>
+
+    <!-- ========================================================================= -->
+    <!-- SCHRITT 5: WARTUNG & UPDATES -->
+    <!-- ========================================================================= -->
+    <article class="step-card" id="card-step-5">
+      <div class="step-header">
+        <div class="step-title-wrap">
+          <div class="step-number">5</div>
+          <div>
+            <h2 class="step-title">Zukünftige Updates: Wie ändern wir Code?</h2>
+            <p class="step-subtitle">Egal ob mit Git oder per WinSCP &ndash; in Sekunden aktualisiert</p>
+          </div>
+        </div>
+        <label class="step-checkbox-wrap">
+          <input type="checkbox" class="step-checkbox" onchange="toggleStep(5, this.checked)">
+          <span style="font-size:0.8rem;color:var(--text-muted);">Als erledigt markieren</span>
+        </label>
+      </div>
+
+      <div class="step-body">
+        <p style="font-size:0.88rem;color:#cbd5e1;margin-bottom:0.9rem;">
+          Wenn wir in Zukunft neue Funktionen programmieren oder Änderungen vornehmen, hast du zwei einfache Möglichkeiten:
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.2rem;">
+          <!-- UPDATE MIT GIT -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1rem;">
+            <strong style="color:#38bdf8;font-size:0.9rem;display:block;margin-bottom:0.4rem;">Variante 1 &bull; Mit Git</strong>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.6rem;">1. Lokal Änderungen committen &amp; pushen:<br><code>git add . &amp;&amp; git commit -m "Update" &amp;&amp; git push</code></p>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.4rem;">2. Auf dem Server nur einen Befehl ausführen:</p>
+            <div class="code-box" style="margin:0;">
+              <pre><code>/opt/snaphost/update.sh</code></pre>
+            </div>
+            <span style="font-size:0.75rem;color:var(--text-subdued);display:block;margin-top:0.4rem;">Zieht automatisch den Code, updatet Pakete und startet den Dienst neu.</span>
+          </div>
+
+          <!-- UPDATE OHNE GIT -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1rem;">
+            <strong style="color:#10b981;font-size:0.9rem;display:block;margin-bottom:0.4rem;">Variante 2 &bull; Ohne Git (WinSCP)</strong>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.6rem;">1. Geänderte Dateien (z. B. <code>public/</code> oder <code>src/</code>) einfach mit WinSCP per Drag &amp; Drop überschreiben.</p>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.4rem;">2. Auf dem Server den Dienst kurz neustarten:</p>
+            <div class="code-box" style="margin:0;">
+              <pre><code>systemctl restart snaphost</code></pre>
+            </div>
+            <span style="font-size:0.75rem;color:var(--text-subdued);display:block;margin-top:0.4rem;">Dauert ca. 1 Sekunde. Alle Datenbank-Einträge und Apps bleiben erhalten.</span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <footer class="footer-bar">
+      SnapHost Production Guide &bull; Alle Rechte vorbehalten &bull; Erstellt für Proxmox, Cloudflare &amp; Nginx Proxy Manager
+    </footer>
+
+  </div>
+
+  <!-- JAVASCRIPT FOR DYNAMIC REACTIVITY & PROGRESS -->
+  <script>
+    const inputDomain = document.getElementById('cfg-domain');
+    const inputWanIp = document.getElementById('cfg-wan-ip');
+    const inputLanIp = document.getElementById('cfg-lan-ip');
+    const inputPassword = document.getElementById('cfg-password');
+
+    function updateDynamicContent() {
+      const domain = (inputDomain.value || 'apps.meinedomain.de').trim();
+      const wanIp = (inputWanIp.value || '123.45.67.89').trim();
+      const lanIp = (inputLanIp.value || '192.168.1.50').trim();
+      const pwd = (inputPassword.value || 'SicheresAdminPasswort2026!').trim();
+
+      // Cloudflare Domain parts
+      const domainParts = domain.split('.');
+      let subPrefix = 'apps';
+      if (domainParts.length > 2) {
+        subPrefix = domainParts[0];
+      }
+
+      document.getElementById('cf-record-main').textContent = subPrefix;
+      document.getElementById('cf-record-wildcard').textContent = '*.' + subPrefix;
+      document.getElementById('cf-preview-sub').textContent = 'mein-spiel.' + domain;
+
+      // Update WAN IPs
+      document.querySelectorAll('.text-wan-ip').forEach(el => el.textContent = wanIp);
+      document.querySelectorAll('.text-lan-ip').forEach(el => el.textContent = lanIp);
+      document.querySelectorAll('.text-live-url').forEach(el => el.textContent = 'https://' + domain);
+      document.querySelectorAll('.text-domain-pair').forEach(el => el.textContent = `${domain}, *.${domain}`);
+
+      // SSL Snippet
+      const sslSnippet = document.getElementById('snippet-ssl-domains');
+      if (sslSnippet) {
+        sslSnippet.innerHTML = `<code>${domain}\n*.${domain}</code>`;
+      }
+
+      // .env snippet
+      const envSnippet = document.getElementById('snippet-env-content');
+      if (envSnippet) {
+        envSnippet.innerHTML = `<code>PORT=3000
+HOST=0.0.0.0
+NODE_ENV=production
+ROOT_DOMAIN=${domain}
+ADMIN_SUBDOMAIN=admin
+ADMIN_PASSWORD=${pwd}
+JWT_SECRET=super-geheimer-zufallsschluessel-fuer-snaphost-prod
+DATA_DIR=./data
+DEFAULT_TTL=24h
+MAX_UPLOAD_SIZE_MB=250</code>`;
+      }
+    }
+
+    [inputDomain, inputWanIp, inputLanIp, inputPassword].forEach(input => {
+      input.addEventListener('input', updateDynamicContent);
+    });
+
+    // Copy to clipboard helper
+    window.copySnippet = function(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      const text = el.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        // Find the button inside the parent header
+        const btn = el.closest('.code-box')?.querySelector('.code-box-header .btn');
+        if (btn) {
+          const orig = btn.textContent;
+          btn.textContent = 'Kopiert!';
+          btn.style.color = '#10b981';
+          setTimeout(() => {
+            btn.textContent = orig;
+            btn.style.color = '';
+          }, 2000);
+        }
+      });
+    };
+
+    // Progress Tracker
+    const stepStates = [false, false, false, false, false];
+
+    window.toggleStep = function(stepNum, isChecked) {
+      stepStates[stepNum - 1] = isChecked;
+      const card = document.getElementById('card-step-' + stepNum);
+      if (card) {
+        card.classList.toggle('completed', isChecked);
+      }
+      updateProgress();
+    };
+
+    function updateProgress() {
+      const completedCount = stepStates.filter(Boolean).length;
+      const pct = Math.round((completedCount / stepStates.length) * 100);
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-text').textContent = `${completedCount} von ${stepStates.length} Schritten abgeschlossen (${pct}%)`;
+    }
+
+    // Initial run
+    updateDynamicContent();
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  snaphost:
+    build: .
+    container_name: snaphost
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - ROOT_DOMAIN=${ROOT_DOMAIN:-apps.deinedomain.de}
+      - ADMIN_SUBDOMAIN=${ADMIN_SUBDOMAIN:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-snaphost123}
+      - JWT_SECRET=${JWT_SECRET:-snaphost-super-secret-key-change-me}
+      - DOCKER_SOCKET=/var/run/docker.sock
+      - DOCKER_NETWORK=snaphost-net
+      - DOCKER_MEMORY_LIMIT_MB=512
+      - DATA_DIR=/data
+      - DEFAULT_TTL=24h
+    volumes:
+      # Persists apps, database, and API keys on your host
+      - ./data:/data
+      # Allows SnapHost to spawn Docker containers for multiplayer games
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - snaphost-net
+
+networks:
+  snaphost-net:
+    name: snaphost-net
+    driver: bridge

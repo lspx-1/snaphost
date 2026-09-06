@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnapHost &mdash; Ephemeral & Permanent Cloud Previews</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/></svg>">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- AUTH / LOGIN VIEW -->
+  <div id="login-view" class="auth-wrapper hidden">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <span class="brand-title">SnapHost</span>
+      </div>
+      <h2>Authentifizierung erforderlich</h2>
+      <p class="auth-subtitle">Geben Sie das Administrator-Kennwort ein, um fortzufahren.</p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-password">Master-Kennwort</label>
+          <input type="password" id="login-password" required placeholder="••••••••••••" autofocus autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          <span>Anmelden</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP VIEW -->
+  <div id="app-view" class="sidebar-layout hidden">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <span class="sidebar-brand-name">
+          SnapHost
+          <span class="badge-env">Pro</span>
+        </span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#section-apps" class="sidebar-nav-item active" id="nav-item-apps">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Bereitstellungen</span>
+        </a>
+        <a href="#section-deploy" class="sidebar-nav-item" id="nav-item-deploy">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Neuer Upload</span>
+        </a>
+
+        <div class="sidebar-section-title">Automatisierung</div>
+
+        <button type="button" class="sidebar-nav-item" id="nav-item-keys">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5L13 7l-1.5-1.5L10 7 8.5 5.5 7 7l-1.5-1.5L4 7 2 5"></path><circle cx="7.5" cy="15.5" r="5.5"></circle><path d="M16 11l4 4-2 2-4-4"></path></svg>
+          <span>API-Zugänge</span>
+        </button>
+        <button type="button" class="sidebar-nav-item" id="nav-item-ai">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+          <span>KI-Prompt</span>
+        </button>
+
+        <div class="sidebar-section-title">Konfiguration</div>
+        <button type="button" class="sidebar-nav-item" id="nav-item-settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Einstellungen</span>
+        </button>
+
+        <div class="sidebar-section-title">Dateien &amp; Scripts</div>
+        <a href="/DEPLOY.md" download="DEPLOY.md" class="sidebar-nav-item" style="font-size:0.78rem;font-family:var(--font-mono);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          <span>DEPLOY.md</span>
+        </a>
+        <a href="/deploy.ps1" download="deploy.ps1" class="sidebar-nav-item" style="font-size:0.78rem;font-family:var(--font-mono);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <span>deploy.ps1</span>
+        </a>
+        <a href="/deploy.sh" download="deploy.sh" class="sidebar-nav-item" style="font-size:0.78rem;font-family:var(--font-mono);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <span>deploy.sh</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar">A</div>
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-name">Administrator</span>
+            <span class="sidebar-user-role" id="sidebar-role-domain">Boxbox</span>
+          </div>
+        </div>
+        <button class="nav-icon-btn" id="btn-sidebar-logout" title="Abmelden">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="content-area">
+      <!-- Top Navigation Bar -->
+      <header class="navbar">
+        <div class="nav-left">
+          <div class="domain-indicator" id="domain-pill" title="Aktive Basis-Domain">
+            <span class="status-ping"></span>
+            <span class="domain-text" id="nav-root-domain">*.apps.domain.com</span>
+          </div>
+        </div>
+
+        <div class="nav-right">
+          <button class="nav-icon-btn" id="btn-logout" title="Abmelden">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="page-container">
+      <!-- Metrics Overview -->
+      <section class="metrics-row">
+        <div class="metric-box">
+          <span class="metric-label">Aktive Bereitstellungen</span>
+          <div class="metric-val-wrap">
+            <span class="metric-value" id="stat-total-apps">0</span>
+            <span class="metric-sub">Online</span>
+          </div>
+        </div>
+
+        <div class="metric-box">
+          <span class="metric-label">Statische Webseiten</span>
+          <div class="metric-val-wrap">
+            <span class="metric-value" id="stat-static-apps">0</span>
+            <span class="metric-sub">Static HTML/SPA</span>
+          </div>
+        </div>
+
+        <div class="metric-box">
+          <span class="metric-label">Container-Apps</span>
+          <div class="metric-val-wrap">
+            <span class="metric-value" id="stat-docker-apps">0</span>
+            <span class="metric-sub">Node / WebSockets</span>
+          </div>
+        </div>
+
+        <div class="metric-box">
+          <span class="metric-label">Ablaufend in &lt; 24h</span>
+          <div class="metric-val-wrap">
+            <span class="metric-value" id="stat-expiring-apps">0</span>
+            <span class="metric-sub">Temporär</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Deployment Creation Console -->
+      <section class="panel panel-collapsible" id="section-deploy">
+        <div class="panel-header">
+          <div>
+            <h3 class="panel-title">Neues Deployment</h3>
+            <p class="panel-description">Stellen Sie Webseiten und Anwendungen per Datei oder direktem Quelltext bereit.</p>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <!-- Mode Switcher -->
+            <div class="segmented-control" id="deploy-mode-switcher">
+              <button type="button" class="segment-btn active" id="tab-btn-file">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span>Datei / ZIP-Archiv</span>
+              </button>
+              <button type="button" class="segment-btn" id="tab-btn-code">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                <span>Quick-Code Editor</span>
+              </button>
+            </div>
+
+            <!-- Collapse Toggle Button -->
+            <button type="button" class="btn-toggle-collapse" id="btn-toggle-deploy-panel" title="Panel minimieren / erweitern">
+              <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            </button>
+          </div>
+        </div>
+
+        <div id="deploy-panel-body" class="panel-collapsible-body">
+          <form id="deploy-form">
+            <!-- Mode 1: File Dropzone -->
+            <div id="tab-file" class="tab-pane">
+              <div class="dropzone" id="dropzone">
+                <input type="file" id="file-input" accept=".zip,.tar.gz,.html,.htm" class="file-input">
+                <div class="dropzone-body">
+                  <div class="dropzone-icon-box">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </div>
+                  <div class="dropzone-headline">
+                    <strong>ZIP-Archiv oder .html Datei hier ablegen</strong> oder <span class="text-accent">Dateien durchsuchen</span>
+                  </div>
+                  <div class="dropzone-subtext" id="file-selected-name">
+                    Unterstützt ZIP-Dateien (Builds, Node.js Server) sowie einzelne .html Dokumente
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mode 2: Quick HTML Code Editor -->
+            <div id="tab-code" class="tab-pane hidden">
+              <div class="code-editor-box">
+                <div class="editor-statusbar">
+                  <span class="editor-lang">HTML &bull; UTF-8</span>
+                  <span class="editor-hint">Wird als index.html ausgeliefert</span>
+                </div>
+                <textarea id="raw-html-input" class="code-editor-textarea" spellcheck="false" placeholder="<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>Preview</title>
+  <style>body { font-family: system-ui; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #000; color: #fff; }</style>
+</head>
+<body>
+  <h1>Sofort-Bereitstellung</h1>
+</body>
+</html>"></textarea>
+              </div>
+            </div>
+
+            <!-- Form Fields Grid -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="deploy-subdomain">Wunsch-Subdomain <span class="label-hint">(optional)</span></label>
+                <input type="text" id="deploy-subdomain" placeholder="z. B. multiplayer-game (leer = Zufallslink)" autocomplete="off">
+              </div>
+
+              <div class="form-group">
+                <label for="deploy-ttl">Gültigkeitsdauer (TTL)</label>
+                <select id="deploy-ttl">
+                  <option value="1h">1 Stunde</option>
+                  <option value="6h">6 Stunden</option>
+                  <option value="24h" selected>24 Stunden (Standard)</option>
+                  <option value="7d">7 Tage</option>
+                  <option value="30d">30 Tage</option>
+                  <option value="permanent">Dauerhaft (Unbegrenzt)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="deploy-type">Laufzeittyp</label>
+                <select id="deploy-type">
+                  <option value="auto" selected>Automatische Erkennung</option>
+                  <option value="static">Statische Webseite</option>
+                  <option value="docker">Docker-Container (Node/WS)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="panel-footer">
+              <button type="submit" class="btn btn-primary" id="btn-deploy-submit" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Bereitstellen</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Deployments Directory Section -->
+      <section class="deployments-section">
+        <div class="section-toolbar">
+          <div class="toolbar-title-group">
+            <h3>Bereitgestellte Anwendungen</h3>
+            <span class="counter-badge" id="apps-count-pill">0</span>
+          </div>
+
+          <div class="toolbar-actions">
+            <!-- Filter Segment -->
+            <div class="filter-group">
+              <button class="filter-btn active" data-filter="all">Alle</button>
+              <button class="filter-btn" data-filter="static">Statisch</button>
+              <button class="filter-btn" data-filter="docker">Container</button>
+              <button class="filter-btn" data-filter="expiring">Ablaufend</button>
+              <button class="filter-btn" data-filter="error">Fehler</button>
+            </div>
+
+            <!-- Search Field -->
+            <div class="search-input-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="apps-search" placeholder="Suchen... (Ctrl+K)" autocomplete="off">
+            </div>
+
+            <!-- Refresh Button -->
+            <button class="btn btn-secondary btn-icon-only" id="btn-refresh-apps" title="Aktualisieren">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Deployments Grid / Table container -->
+        <div id="apps-list" class="deployments-grid">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="apps-empty" class="empty-state-box hidden">
+          <div class="empty-icon-wrap">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
+          <h4>Keine Bereitstellungen vorhanden</h4>
+          <p>Laden Sie ein Archiv hoch oder nutzen Sie die REST-API, um neue Vorschauen zu veröffentlichen.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Dedicated Fullpage Detail View -->
+    <main id="fullpage-app-detail" class="fullpage-detail-view hidden">
+      <div class="fullpage-topbar">
+        <div class="fullpage-breadcrumb">
+          <a href="#section-apps" id="btn-fullpage-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <span>Zurück zur Übersicht</span>
+          </a>
+          <span style="color:var(--text-tertiary);">/</span>
+          <span id="fullpage-title" style="font-weight:600;color:#fff;">App Name</span>
+          <span id="fullpage-status-pill" class="status-badge running">Online</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <a href="#" id="fullpage-external-link" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Seite im Tab öffnen</span>
+          </a>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-fullpage-close" title="Zurück zum Dashboard">Dashboard</button>
+        </div>
+      </div>
+
+      <div class="fullpage-content" id="fullpage-content-host">
+        <!-- Inspector window docked here in fullpage mode -->
+      </div>
+    </main>
+  </div> <!-- .content-area -->
+  </div> <!-- .sidebar-layout -->
+
+  <!-- MODAL: COMPREHENSIVE SITE INSPECTOR & SETTINGS -->
+  <div id="modal-app-details" class="modal-overlay hidden">
+    <div id="inspector-modal-window" class="modal-window modal-inspector">
+      <!-- Header -->
+      <div class="inspector-header">
+        <div>
+          <div class="inspector-title-row">
+            <span class="inspector-title" id="details-app-title">App Name</span>
+            <span id="details-status-pill" class="status-badge running">Online</span>
+            <span id="details-type-tag" class="badge-tag">Node / Docker</span>
+            <span id="details-version-badge" class="badge-tag font-mono">v1</span>
+            <span id="details-lock-badge" class="badge-lock hidden">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span>Geschützt</span>
+            </span>
+          </div>
+          <div class="inspector-url-row">
+            <a href="#" id="details-app-link" target="_blank" rel="noopener">https://slug.domain.com</a>
+            <button class="copy-icon-btn" id="btn-details-copy-url" title="URL kopieren">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.35rem;">
+          <button type="button" class="btn btn-ghost btn-sm btn-icon-only" id="btn-details-expand-fullpage" title="Vollbild-Ansicht / Eigene Seite öffnen">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+          </button>
+          <button class="modal-close-btn" data-close="modal-app-details">&times;</button>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="inspector-tab-bar">
+        <button type="button" class="inspector-tab-btn active" data-tab-target="tab-details-overview">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Übersicht</span>
+        </button>
+        <button type="button" class="inspector-tab-btn" data-tab-target="tab-details-versions">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          <span>Versionen (<span id="details-versions-count">1</span>)</span>
+        </button>
+        <button type="button" class="inspector-tab-btn" data-tab-target="tab-details-logs">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <span>Konsole &amp; Logs</span>
+        </button>
+        <button type="button" class="inspector-tab-btn" data-tab-target="tab-details-settings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Einstellungen</span>
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <!-- TAB 1: ÜBERSICHT -->
+      <div id="tab-details-overview" class="inspector-tab-pane">
+        <!-- Error alert box (if error) -->
+        <div id="details-error-box" class="build-error-box hidden">
+          <div class="build-error-header">
+            <div class="build-error-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <span>Fehler beim Bauen oder Ausführen</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-details-open-logs">Vollständige Logs öffnen</button>
+          </div>
+          <pre class="build-error-pre" id="details-error-text"></pre>
+        </div>
+
+        <!-- Metrics KV Grid -->
+        <div class="inspector-kv-grid">
+          <div class="inspector-kv-item">
+            <span class="inspector-kv-label">Status</span>
+            <span class="inspector-kv-value" id="kv-status">Online</span>
+          </div>
+          <div class="inspector-kv-item">
+            <span class="inspector-kv-label">Verbleibende Laufzeit</span>
+            <span class="inspector-kv-value" id="kv-ttl">Dauerhaft</span>
+          </div>
+          <div class="inspector-kv-item">
+            <span class="inspector-kv-label">Aktive Version</span>
+            <span class="inspector-kv-value mono" id="kv-version">v1</span>
+          </div>
+          <div class="inspector-kv-item">
+            <span class="inspector-kv-label">Zugangsschutz</span>
+            <span class="inspector-kv-value" id="kv-password">Öffentlich</span>
+          </div>
+          <div class="inspector-kv-item">
+            <span class="inspector-kv-label">Zuletzt geöffnet</span>
+            <span class="inspector-kv-value" id="kv-last-hit">Noch nie</span>
+          </div>
+          <div class="inspector-kv-item">
+            <span class="inspector-kv-label">Erstellt am</span>
+            <span class="inspector-kv-value" id="kv-created-at">--</span>
+          </div>
+          <div class="inspector-kv-item">
+            <span class="inspector-kv-label">Container-ID</span>
+            <span class="inspector-kv-value mono" id="kv-container-id">--</span>
+          </div>
+          <div class="inspector-kv-item">
+            <span class="inspector-kv-label">Port / Routing</span>
+            <span class="inspector-kv-value mono" id="kv-port">3000</span>
+          </div>
+        </div>
+
+        <!-- Control Actions (Betrieb) -->
+        <div class="control-actions-card">
+          <div class="control-actions-title">Betrieb &amp; Steuerung</div>
+          <div class="control-actions-row">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-action-power">
+              <span id="btn-action-power-label">Offline nehmen</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-action-restart">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              <span>Neu starten</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-action-rebuild">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+              <span>Neu bauen</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-action-preview">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <span>Live-Vorschau</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-action-qr">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              <span>QR-Code</span>
+            </button>
+            <a href="#" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" id="btn-action-open">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              <span>Im Tab öffnen</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: VERSIONEN -->
+      <div id="tab-details-versions" class="inspector-tab-pane hidden">
+        <div style="margin-bottom:1.5rem;">
+          <h4 style="font-size:0.9rem;font-weight:600;margin-bottom:0.85rem;">Verfügbare Versionen</h4>
+          <div id="details-versions-list" class="versions-list">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:0;background:var(--bg-surface-elevated);">
+          <h4 style="font-size:0.88rem;font-weight:600;margin-bottom:0.5rem;">Neue Version hochladen</h4>
+          <p class="text-subdued" style="font-size:0.8rem;margin-bottom:1rem;">Erstellt automatisch eine Sicherung der aktuellen Version und schaltet den neuen Code sofort live.</p>
+          <form id="details-version-upload-form">
+            <div class="form-group" style="margin-bottom:1rem;">
+              <input type="file" id="details-version-file" accept=".zip,.tar.gz,.html,.htm" required style="padding:0.5rem;background:var(--bg-input);border:1px dashed var(--border-default);border-radius:var(--radius-sm);width:100%;">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" id="btn-upload-version-submit">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              <span>Version hochladen &amp; aktivieren</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- TAB 3: KONSOLE & LOGS -->
+      <div id="tab-details-logs" class="inspector-tab-pane hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <label style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.8rem;cursor:pointer;">
+              <input type="checkbox" id="details-log-autorefresh" checked>
+              <span>Live-Aktualisierung (3s)</span>
+            </label>
+            <select id="details-log-tail" style="width:auto;height:28px;padding:0 0.5rem;font-size:0.75rem;">
+              <option value="50">50 Zeilen</option>
+              <option value="150" selected>150 Zeilen</option>
+              <option value="300">300 Zeilen</option>
+              <option value="600">600 Zeilen</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:0.4rem;">
+            <button type="button" class="btn btn-secondary btn-xs" id="btn-details-logs-refresh">Aktualisieren</button>
+            <button type="button" class="btn btn-secondary btn-xs" id="btn-details-logs-copy">Kopieren</button>
+          </div>
+        </div>
+        <div class="terminal-container" style="height:360px;">
+          <pre id="details-logs-content" class="terminal-stream">Lade Protokolldaten...</pre>
+        </div>
+      </div>
+
+      <!-- TAB 4: EINSTELLUNGEN -->
+      <div id="tab-details-settings" class="inspector-tab-pane hidden">
+        <form id="details-settings-form">
+          <div class="form-grid" style="margin-bottom:1.25rem;">
+            <div class="form-group">
+              <label for="settings-title">Bezeichnung</label>
+              <input type="text" id="settings-title" placeholder="Mein Projekt">
+            </div>
+            <div class="form-group">
+              <label for="settings-subdomain">Subdomain (Slug)</label>
+              <input type="text" id="settings-subdomain" class="font-mono" placeholder="mein-projekt" pattern="[a-z0-9-]+">
+            </div>
+            <div class="form-group">
+              <label for="settings-ttl">Gültigkeitsdauer (TTL ab jetzt)</label>
+              <select id="settings-ttl">
+                <option value="">Unverändert beibehalten</option>
+                <option value="1h">1 Stunde</option>
+                <option value="24h">24 Stunden</option>
+                <option value="7d">7 Tage</option>
+                <option value="30d">30 Tage</option>
+                <option value="permanent">Dauerhaft (Unbegrenzt)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="settings-password">Passwortschutz (Sperre)</label>
+              <input type="text" id="settings-password" placeholder="leer = öffentlich zugänglich" autocomplete="off">
+              <span class="field-hint">Besucher müssen dieses Kennwort im Browser eingeben</span>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label style="display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;">
+              <input type="checkbox" id="settings-spa">
+              <span>Single-Page-App (SPA Fallback: Alle Pfade auf index.html leiten)</span>
+            </label>
+          </div>
+
+          <div id="details-docker-settings-group" class="panel" style="margin-bottom:1.5rem;background:var(--bg-surface-elevated);">
+            <h4 style="font-size:0.85rem;font-weight:600;margin-bottom:0.75rem;">Container-Parameter</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="settings-port">Interner Port</label>
+                <input type="number" id="settings-port" class="font-mono" placeholder="3000">
+              </div>
+              <div class="form-group">
+                <label for="settings-start">Start-Befehl</label>
+                <input type="text" id="settings-start" class="font-mono" placeholder="z. B. node server.js">
+              </div>
+              <div class="form-group">
+                <label for="settings-build">Build-Befehl</label>
+                <input type="text" id="settings-build" class="font-mono" placeholder="z. B. npm run build">
+              </div>
+              <div class="form-group">
+                <label for="settings-env">Umgebungsvariablen (JSON)</label>
+                <input type="text" id="settings-env" class="font-mono" placeholder='{"NODE_ENV":"production"}'>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:1.5rem;">
+            <button type="submit" class="btn btn-primary" id="btn-save-settings">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Änderungen speichern</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Danger Zone -->
+        <div class="danger-zone-box">
+          <div class="danger-zone-header">Gefahrenzone</div>
+          <div class="danger-zone-desc">Löscht dieses Deployment, alle archivierten Versionen und den zugehörigen Docker-Container endgültig. Die Subdomain wird sofort freigegeben.</div>
+          <button type="button" class="btn btn-danger btn-sm" id="btn-details-delete-app">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <span>Projekt endgültig löschen</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LIVE PREVIEW -->
+  <div id="modal-preview" class="modal-overlay hidden">
+    <div class="modal-window preview-modal-window">
+      <div class="modal-header">
+        <div class="preview-meta">
+          <span class="modal-title-text" id="preview-title">Vorschau</span>
+          <!-- Viewport Switcher -->
+          <div class="viewport-switcher">
+            <button type="button" class="viewport-btn active" data-device="desktop" title="Desktop Ansicht (100%)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+              <span>Desktop</span>
+            </button>
+            <button type="button" class="viewport-btn" data-device="tablet" title="Tablet Ansicht (768px)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+              <span>Tablet</span>
+            </button>
+            <button type="button" class="viewport-btn" data-device="mobile" title="Mobil Ansicht (375px)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+              <span>Mobile</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-top-actions">
+          <button class="btn btn-secondary btn-sm" id="btn-preview-reload" title="Neu laden">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          </button>
+          <a href="#" target="_blank" class="btn btn-secondary btn-sm" id="btn-preview-external" title="In neuem Tab öffnen">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span>Öffnen</span>
+          </a>
+          <button class="modal-close-btn" data-close="modal-preview">&times;</button>
+        </div>
+      </div>
+
+      <div class="preview-stage">
+        <div class="device-frame" id="device-frame-container">
+          <iframe id="preview-iframe" src="about:blank" class="preview-iframe-element" title="Deployment Preview"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: QR CODE -->
+  <div id="modal-qrcode" class="modal-overlay hidden">
+    <div class="modal-window modal-compact text-center">
+      <div class="modal-header">
+        <span class="modal-title-text">Mobiles Scannen</span>
+        <button class="modal-close-btn" data-close="modal-qrcode">&times;</button>
+      </div>
+      <div class="modal-content">
+        <p class="text-subdued" id="qr-app-name">QR-Code scannen, um die Anwendung auf einem Mobilgerät zu öffnen:</p>
+        <div class="qr-code-canvas">
+          <img id="qr-image" src="" alt="Application QR Code" class="qr-img">
+        </div>
+        <div class="code-display-bar">
+          <span id="qr-url-text" class="truncate font-mono">https://...</span>
+          <button class="copy-icon-btn" id="btn-qr-copy" title="URL kopieren">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AI GUIDE / KI-PROMPT -->
+  <div id="modal-ai-guide" class="modal-overlay hidden">
+    <div class="modal-window modal-extended">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-title-text">KI-Prompt &amp; Dokumentation</span>
+          <span class="badge-tag" style="background:rgba(56,189,248,0.15);color:#38bdf8;">Für Claude, Cursor, Antigravity</span>
+        </div>
+        <button class="modal-close-btn" data-close="modal-ai-guide">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="ai-prompt-topbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.85rem;flex-wrap:wrap;gap:0.75rem;">
+          <p class="text-subdued" style="margin:0;max-width:540px;font-size:0.85rem;">
+            Diesen Prompt an deinen KI-Agenten übergeben (zusammen mit einem API-Schlüssel), damit dieser vollautomatisch deployen, debuggen und aktualisieren kann.
+          </p>
+          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-copy-ai-prompt" title="Prompt in die Zwischenablage kopieren">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span id="btn-copy-ai-label">Prompt kopieren</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-download-ai-prompt" title="Prompt als DEPLOY.md Datei herunterladen">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>Als Datei herunterladen</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="code-view-container">
+          <pre class="code-view-block" style="max-height:520px;overflow-y:auto;background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:1rem;font-family:var(--font-mono);font-size:0.82rem;line-height:1.55;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;"><code id="code-ai-prompt">Lade KI-Prompt...</code></pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="modal-ai-guide">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: API KEYS -->
+  <div id="modal-api-keys" class="modal-overlay hidden">
+    <div class="modal-window modal-extended">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-title-text">API-Schlüssel Verwaltung</span>
+          <span class="badge-tag" style="background:rgba(16,185,129,0.15);color:#34d399;">SHA-256 Verschlüsselt</span>
+        </div>
+        <button class="modal-close-btn" data-close="modal-api-keys">&times;</button>
+      </div>
+      <div class="modal-content">
+        <!-- New Token Success / Alert Box (only visible right after generation) -->
+        <div id="new-key-success-box" class="key-created-alert hidden">
+          <div class="key-created-header">
+            <strong style="color:var(--status-active);display:flex;align-items:center;gap:0.4rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Neuer API-Schlüssel erfolgreich generiert
+            </strong>
+            <button type="button" class="btn btn-ghost btn-xs" id="btn-close-key-alert" title="Schließen">&times;</button>
+          </div>
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.75rem;line-height:1.4;">
+            Kopiere diesen Schlüssel jetzt und bewahre ihn sicher auf. <strong>Er wird danach aus Sicherheitsgründen nie wieder im Klartext angezeigt!</strong> In der Datenbank wird ausschließlich ein kryptografischer SHA-256-Hash gespeichert.
+          </p>
+          <div class="code-display-bar" style="margin-bottom:0.5rem;padding:0.6rem 0.85rem;">
+            <span id="new-key-token-display" class="truncate font-mono" style="font-weight:600;color:#fff;font-size:0.88rem;">sh_live_...</span>
+            <button class="btn btn-primary btn-xs" id="btn-copy-new-key">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Kopieren</span>
+            </button>
+          </div>
+        </div>
+
+        <p class="text-subdued">Tokens ermöglichen die vollautomatische Bereitstellung per Befehlszeile (PowerShell, Bash, curl) sowie durch KI-Agenten (Claude, Antigravity, Cursor).</p>
+
+        <form id="create-key-form" class="key-gen-bar">
+          <input type="text" id="new-key-name" placeholder="Bezeichnung (z. B. Cursor Agent, Claude, CI/CD Runner)" required>
+          <button type="submit" class="btn btn-primary btn-sm">Schlüssel generieren</button>
+        </form>
+
+        <div id="api-keys-list" class="tokens-list">
+          <!-- Tokens rendered here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RENAME SUBDOMAIN -->
+  <div id="modal-rename" class="modal-overlay hidden">
+    <div class="modal-window modal-compact">
+      <div class="modal-header">
+        <span class="modal-title-text">Subdomain ändern</span>
+        <button class="modal-close-btn" data-close="modal-rename">&times;</button>
+      </div>
+      <form id="rename-form">
+        <input type="hidden" id="rename-app-id">
+        <div class="modal-content">
+          <div class="form-group">
+            <label for="rename-subdomain">Neuer Subdomain-Identifier</label>
+            <input type="text" id="rename-subdomain" required placeholder="beispiel-app" pattern="[a-z0-9-]+" autocomplete="off">
+            <span class="field-hint">Erlaubt: Kleinbuchstaben, Ziffern und Bindestriche</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-rename">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EXTEND TTL -->
+  <div id="modal-ttl" class="modal-overlay hidden">
+    <div class="modal-window modal-compact">
+      <div class="modal-header">
+        <span class="modal-title-text">Gültigkeitsdauer anpassen</span>
+        <button class="modal-close-btn" data-close="modal-ttl">&times;</button>
+      </div>
+      <form id="ttl-form">
+        <input type="hidden" id="ttl-app-id">
+        <div class="modal-content">
+          <div class="form-group">
+            <label for="ttl-select">Ablaufzeit ab aktuellem Zeitpunkt</label>
+            <select id="ttl-select">
+              <option value="2h">+ 2 Stunden</option>
+              <option value="24h">+ 24 Stunden</option>
+              <option value="7d">+ 7 Tage</option>
+              <option value="30d">+ 30 Tage</option>
+              <option value="permanent">Dauerhaft (Keine Beendigung)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-ttl">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Aktualisieren</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: LOGS -->
+  <div id="modal-logs" class="modal-overlay hidden">
+    <div class="modal-window modal-extended">
+      <div class="modal-header">
+        <span class="modal-title-text" id="logs-title">Container Protokoll</span>
+        <button class="modal-close-btn" data-close="modal-logs">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="terminal-container">
+          <pre id="logs-content" class="terminal-stream">Lade Container-Ausgabe...</pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="modal-logs">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DASHBOARD EINSTELLUNGEN -->
+  <div id="modal-dashboard-settings" class="modal-overlay hidden">
+    <div class="modal-window modal-compact">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-title-text">Dashboard-Einstellungen</span>
+        </div>
+        <button class="modal-close-btn" data-close="modal-dashboard-settings">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label style="font-weight:600;margin-bottom:0.5rem;display:block;font-size:0.85rem;">Standard-Ansicht für Bereitstellungen</label>
+          <div class="segmented-control" id="settings-view-switcher" style="width:100%;display:flex;">
+            <button type="button" class="segment-btn active" id="setting-btn-cards" style="flex:1;justify-content:center;padding:0.45rem;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              <span>Karten (Standard)</span>
+            </button>
+            <button type="button" class="segment-btn" id="setting-btn-table" style="flex:1;justify-content:center;padding:0.45rem;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+              <span>Tabelle</span>
+            </button>
+          </div>
+          <span class="field-hint" style="margin-top:0.4rem;display:block;">Karten eignen sich für visuelle Vorschauen, die Tabelle für dichte Projektlisten.</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0.5rem;">
+          <label style="display:inline-flex;align-items:center;gap:0.55rem;cursor:pointer;font-size:0.85rem;">
+            <input type="checkbox" id="setting-keep-deploy-open" checked>
+            <span>Upload-Panel immer geöffnet lassen</span>
+          </label>
+          <span class="field-hint" style="margin-left:1.5rem;display:block;">Verhindert das automatische Einklappen bei vorhandenen Bereitstellungen.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-close="modal-dashboard-settings">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
