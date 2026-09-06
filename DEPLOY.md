@@ -1,10 +1,10 @@
-# Deploy-Anleitung für KI-Assistenten (SnapHost)
+# SnapHost – Technische Deployment- & API-Dokumentation
 
-Diese Datei beschreibt, wie ein Webprojekt auf den SnapHost-Server hochgeladen, gewartet, debuggt und verwaltet wird. Lies sie vollständig, bevor du deployst.
+SnapHost ist eine private Self-Hosted Cloud- & Hosting-Plattform. Diese Dokumentation beschreibt die Bereitstellung, Wartung und Verwaltung von Web-Projekten und Containern über die SnapHost CLI sowie die REST-API.
 
 - **Server Basis-URL:** `https://DEINE_SNAPHOST_DOMAIN`
 - **Sites laufen unter:** `https://<slug>.DEINE_SNAPHOST_DOMAIN`
-- **Authentifizierung:** HTTP-Header `Authorization: Bearer DEIN_API_KEY` (oder Umgebungsvariablen `DEPLOY_TOKEN` und `DEPLOY_SERVER`). Schreibe den Token nie in Dateien des Zielprojekts.
+- **Authentifizierung:** HTTP-Header `Authorization: Bearer DEIN_API_KEY` (oder Umgebungsvariablen `SNAPHOST_TOKEN` / `DEPLOY_TOKEN`).
 - **Identifikatoren:** Alle Endpunkte akzeptieren als Bezeichner entweder die **Subdomain / Slug** (z. B. `mein-spiel`) oder die interne **ID** (z. B. `app_a1b2c3`). Beide Pfad-Präfixe `/api/apps/...` und `/api/sites/...` werden voll unterstützt.
 
 ---
@@ -15,14 +15,14 @@ Diese Datei beschreibt, wie ein Webprojekt auf den SnapHost-Server hochgeladen, 
 2. **Typ festlegen:** `static` (HTML/CSS/JS), `docker` / `node` (Node.js/WebSockets/Express) oder `auto` (SnapHost erkennt es automatisch).
 3. **`deploy.json` anlegen:** (optional, aber empfohlen – siehe Referenz unten).
 4. **ZIP erstellen:** Der Inhalt des Ordners muss im ZIP-Root liegen. `node_modules` und `.git` **niemals** einpacken. Bei einzelnen HTML-Seiten kann direkt die `.html`-Datei ohne Archiv hochgeladen werden.
-5. **Hochladen:** Per CLI-Skript oder direkt per REST-API `POST /api/deploy`. Nach erfolgreichem Deployment die `url` aus der Antwort wörtlich dem Nutzer mitteilen.
+5. **Hochladen:** Per CLI (`npx snaphost deploy`) oder direkt per REST-API `POST /api/deploy`. Nach erfolgreichem Deployment ist das Projekt unter der zurückgegebenen `url` live erreichbar.
 
 ---
 
 ## 1. Bereitstellen per SnapHost CLI (Empfohlen) oder API
 
 ### Mit der SnapHost CLI (`snaphost` oder `npx snaphost`):
-> **Tipp für KI-Assistenten:** Der API-Token ist sicher lokal in `~/.snaphost/config.json` hinterlegt (`snaphost login`). Du musst den Token nicht in Umgebungsvariablen oder Befehlen übergeben!
+Die CLI liest Anmeldedaten und Server-URL automatisch aus `~/.snaphost/config.json` (`snaphost login`) oder Umgebungsvariablen (`SNAPHOST_TOKEN`, `SNAPHOST_SERVER`).
 
 ```bash
 # Projekt bereitstellen:
@@ -37,6 +37,8 @@ npx snaphost status mein-spiel                           # Status, Version & Con
 npx snaphost restart mein-spiel                          # Container neu starten
 npx snaphost rebuild mein-spiel                          # Aus vorhandenen Dateien neu bauen
 npx snaphost rollback mein-spiel                         # Rollback zur vorherigen Version
+npx snaphost stop mein-spiel                             # App anhalten (offline nehmen)
+npx snaphost delete mein-spiel                           # Bereitstellung endgültig löschen
 npx snaphost list                                        # Alle Apps tabellarisch anzeigen
 ```
 

@@ -1,100 +1,87 @@
-# SnapHost CLI – Anleitung für KI-Assistenten
+# SnapHost – Dokumentation & CLI-Leitfaden
 
-Du bist angewiesen, dieses Projekt mit der **SnapHost CLI** bereitzustellen, zu debuggen und zu verwalten.
-Führe alle Aktionen über `npx snaphost` (oder `snaphost`, falls global installiert) in deinem Terminal aus.
+SnapHost ist eine private Self-Hosted Cloud- & Deployment-Plattform (ähnlich wie Vercel, Railway oder Coolify) auf eigenem Server.
+Projekte werden direkt per Terminal über die SnapHost CLI (`npx snaphost` oder global `snaphost`) bereitgestellt, überwacht und verwaltet.
 
----
-
-## 🔐 1. Authentifizierung & Konfiguration
-SnapHost speichert Server-URL und API-Token automatisch in `~/.snaphost/config.json`.
-- **Wichtig:** Du musst **keinen** Token erfragen oder in Befehle einfügen, wenn die CLI bereits eingeloggt ist!
-- Prüfe den Login-Status jederzeit mit:
-  ```bash
-  npx snaphost whoami
-  ```
-- Falls noch nicht eingeloggt:
-  ```bash
-  npx snaphost login --server https://DEINE_SNAPHOST_DOMAIN
-  ```
-  *(Oder setze Umgebungsvariablen: `SNAPHOST_SERVER=https://DEINE_SNAPHOST_DOMAIN` und `SNAPHOST_TOKEN=<token>`)*
-
-- **Server-Basis-URL:** `https://DEINE_SNAPHOST_DOMAIN`
+- **Server Basis-URL:** `https://DEINE_SNAPHOST_DOMAIN`
 - **Bereitgestellte Apps laufen unter:** `https://<slug>.DEINE_SNAPHOST_DOMAIN`
 
 ---
 
-## 🚀 2. Projekt bereitstellen (Deploy)
+## 🚀 1. Projekt bereitstellen (Deploy)
+
+Die CLI erkennt automatisch den Build-Ordner (`./dist`, `./build`, `./out`) oder nutzt das aktuelle Verzeichnis:
 
 ### Frontend / Statische Webseiten (HTML, CSS, JS, Vite, React, Vue, Svelte):
-1. Falls nötig, zuerst das Projekt bauen:
-   ```bash
-   npm run build
-   ```
-2. Bereitstellen:
-   ```bash
-   # Automatische Erkennung (sucht ./dist, ./build, ./out oder aktuelles Verzeichnis):
-   npx snaphost deploy
+```bash
+# Projekt bauen (falls nötig):
+npm run build
 
-   # Gezielt den Build-Ordner mit Wunsch-Subdomain und dauerhafter Laufzeit:
-   npx snaphost deploy ./dist --slug mein-projekt --ttl permanent
+# Automatischer Deploy (sucht dist/ oder aktuelles Verzeichnis):
+npx snaphost deploy
 
-   # Optional mit Passwortschutz:
-   npx snaphost deploy ./dist --slug mein-projekt --password geheim
-   ```
+# Gezielt den Build-Ordner mit Subdomain und dauerhafter Laufzeit bereitstellen:
+npx snaphost deploy ./dist --slug mein-projekt --ttl permanent
+
+# Optional mit HTTP Basic Auth Passwortschutz:
+npx snaphost deploy ./dist --slug mein-projekt --password geheim
+```
 
 ### Fullstack / Backend / Multiplayer (Node.js, Express, WebSockets, Docker):
-1. Stelle sicher, dass `package.json` ein `"start"` Script enthält (z. B. `"start": "node server.js"`).
-2. Im Projektverzeichnis ausführen:
-   ```bash
-   npx snaphost deploy . --slug mein-backend --ttl permanent
-   ```
+```bash
+# Im Projektverzeichnis ausführen (package.json mit "start"-Script erforderlich):
+npx snaphost deploy . --slug mein-backend --ttl permanent
+```
 
 ---
 
-## 🛠️ 3. Debugging & Fehleranalyse (HÄUFIGE FEHLER BEHEBEN)
+## 🔍 2. Logs & Debugging (Fehleranalyse)
 
-### A. Live-Logs prüfen (Erste Pflicht bei Fehlern oder 502 Bad Gateway!):
+Falls ein Container oder eine Web-App nach dem Start Fehler meldet oder nicht erreichbar ist, können die Logs direkt über die CLI ausgelesen werden:
+
 ```bash
-# Zeigt die letzten 100 Zeilen der Container- & Konsolen-Logs:
+# Live-Logs der Anwendung / des Containers abrufen (letzte 100 Zeilen):
 npx snaphost logs mein-projekt --tail 100
-```
-Lies die Fehlermeldungen im Log genau durch (fehlende Module, Port-Konflikte, Syntaxfehler etc.).
 
-### B. Status abfragen:
-```bash
+# Status, Port, Version, interne URL und Container-ID prüfen:
 npx snaphost status mein-projekt
 ```
-Gibt Status (`running`, `error`, `stopped`), Port, Container-ID, interne URL und Gültigkeit aus.
 
 ---
 
-## 🔄 4. Verwaltung, Neustart & Rollback
+## 🔄 3. Verwaltung & Lifecycle
 
 ```bash
-# App nach Code-Änderungen oder Konfigurationsanpassungen neu starten:
+# Container neu starten (z. B. nach Konfigurationsanpassungen):
 npx snaphost restart mein-projekt
 
-# Container komplett neu bauen (z. B. nach Dockerfile- oder Dependency-Änderungen):
+# Container komplett neu bauen (Rebuild aus hochgeladenem Code):
 npx snaphost rebuild mein-projekt
 
-# Zur vorherigen funktionierenden Version zurückkehren:
+# Sofortiges Rollback zur vorherigen stabilen Version:
 npx snaphost rollback mein-projekt
 
-# Alle aktiven Apps auflisten:
+# App / Container anhalten (offline nehmen):
+npx snaphost stop mein-projekt
+
+# Angehaltene App wieder online schalten:
+npx snaphost start mein-projekt
+
+# Bereitstellung endgültig löschen:
+npx snaphost delete mein-projekt
+
+# Alle aktiven Bereitstellungen auflisten:
 npx snaphost list
 
-# App im Browser aufrufen:
+# Live-URL direkt im Browser öffnen:
 npx snaphost open mein-projekt
-
-# App stoppen oder löschen:
-npx snaphost stop mein-projekt
-npx snaphost delete mein-projekt
 ```
 
 ---
 
-## 📋 5. Projektkonfiguration (`deploy.json`)
-Du kannst optional eine `deploy.json` im Stammverzeichnis deines Projekts anlegen:
+## ⚙️ 4. Projektkonfiguration (`deploy.json`)
+
+Im Projektverzeichnis kann optional eine `deploy.json` hinterlegt werden:
 
 ```json
 {
@@ -108,14 +95,27 @@ Du kannst optional eine `deploy.json` im Stammverzeichnis deines Projekts anlege
 }
 ```
 
-### ⚠️ Wichtige Regeln für Server & Container:
-- **Port:** Node.js-Server **müssen** auf `process.env.PORT` (Fallback: `3000`) lauschen und an `0.0.0.0` binden:
+### Technische Vorgaben für Apps & Container:
+- **Port:** Node.js-Server lauschen auf `process.env.PORT` (Fallback: `3000`) und binden an `0.0.0.0`:
   `const port = process.env.PORT || 3000; server.listen(port, '0.0.0.0');`
-- **WebSockets:** Müssen denselben HTTP-Server und Port nutzen (kein zweiter Port).
-- **Dateipfade:** Verwende in HTML/CSS stets **relative Pfade** (z. B. `./app.js`, nicht `/app.js`).
+- **WebSockets:** Nutzen denselben HTTP-Server und Port wie die Web-App.
+- **Dateipfade:** In HTML/CSS stets relative Pfade verwenden (z. B. `./app.js`, nicht `/app.js`).
 - `node_modules` und `.git` werden von der CLI automatisch vom Upload ausgeschlossen.
 
 ---
 
-Nach erfolgreichem Deployment teilst du dem Nutzer die Live-URL wörtlich mit:
-👉 `https://<slug>.DEINE_SNAPHOST_DOMAIN`
+## 🔐 5. Authentifizierung & CLI-Setup
+
+Die SnapHost CLI liest Zugangsdaten automatisch aus der lokalen Konfiguration (`~/.snaphost/config.json`) oder Umgebungsvariablen.
+
+- **Status prüfen:**
+  ```bash
+  npx snaphost whoami
+  ```
+- **Einmalig anmelden:**
+  ```bash
+  npx snaphost login --server https://DEINE_SNAPHOST_DOMAIN
+  ```
+  *(Alternativ über Umgebungsvariablen: `SNAPHOST_SERVER=https://DEINE_SNAPHOST_DOMAIN` und `SNAPHOST_TOKEN=<token>`)*
+
+Nach erfolgreichem Deployment ist das Projekt unter `https://<slug>.DEINE_SNAPHOST_DOMAIN` erreichbar.

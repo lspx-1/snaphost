@@ -403,6 +403,33 @@ async function cmdRollback(args, flags) {
   }
 }
 
+async function cmdStop(args, flags) {
+  const { server, token } = resolveCredentials(flags);
+  const identifier = args[0];
+  if (!identifier) {
+    console.error('❌ Bitte Subdomain oder App-ID angeben: snaphost stop <slug>');
+    process.exit(1);
+  }
+
+  try {
+    const res = await fetch(`${server}/api/apps/${identifier}/stop`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await res.json();
+    if (data.success || data.ok) {
+      console.log(`✓ App '${identifier}' angehalten (offline genommen).`);
+    } else {
+      console.error(`❌ Fehler beim Anhalten: ${data.error || 'Aktion fehlgeschlagen'}`);
+    }
+  } catch (err) {
+    console.error(`❌ Fehler: ${err.message}`);
+  }
+}
+
 async function cmdDelete(args, flags) {
   const { server, token } = resolveCredentials(flags);
   const identifier = args[0];
@@ -465,7 +492,9 @@ BEFEHLE:
   restart <slug>     Container neu starten / statische Seite reaktivieren
   rebuild <slug>     Container neu bauen aus vorhandenen Dateien
   rollback <slug>    Sofortiges Rollback zur vorherigen Version
-  delete <slug>      Bereitstellung endgültig löschen
+  stop <slug>        App / Container anhalten (offline nehmen)
+  start <slug>       Angehaltene App wieder online schalten
+  delete <slug>      Bereitstellung endgültig löschen (Alias: rm)
   open <slug>        App-URL direkt im Standardbrowser öffnen
   login              API-Token & Server einmalig sicher lokal abspeichern
   logout             Gespeicherte Zugangsdaten löschen
@@ -546,6 +575,12 @@ async function main() {
       break;
     case 'rollback':
       await cmdRollback(positional, flags);
+      break;
+    case 'stop':
+      await cmdStop(positional, flags);
+      break;
+    case 'start':
+      await cmdRestart(positional, flags);
       break;
     case 'delete':
     case 'rm':
