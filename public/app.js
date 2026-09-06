@@ -549,7 +549,7 @@ function renderApps(apps) {
               <div style="display:flex;align-items:center;gap:0.4rem;min-width:0;">
                 <span class="table-title-link" onclick="openAppDetails('${app.id}')">${escapeHtml(app.title || app.subdomain)}</span>
                 ${app.password ? `
-                  <span class="badge-lock" title="Passwortgeschützt">
+                  <span class="badge-lock" title="Passwortgeschützt – Klicken zum Bearbeiten" style="cursor:pointer;" onclick="event.stopPropagation(); openAppDetails('${app.id}', 'tab-details-settings')">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                     <span>Geschützt</span>
                   </span>
@@ -634,7 +634,7 @@ function renderApps(apps) {
               <span class="status-dot ${statusClass}"></span>
               <span style="font-weight:600;">${escapeHtml(app.title || app.subdomain)}</span>
               ${app.password ? `
-                <span class="badge-lock" title="Passwortgeschützt">
+                <span class="badge-lock" title="Passwortgeschützt – Klicken zum Bearbeiten" style="cursor:pointer;" onclick="event.stopPropagation(); openAppDetails('${app.id}', 'tab-details-settings')">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                   <span>Geschützt</span>
                 </span>
@@ -1896,33 +1896,64 @@ document.getElementById('nav-item-settings')?.addEventListener('click', () => {
   document.getElementById('modal-dashboard-settings')?.classList.remove('hidden');
 });
 
-document.getElementById('btn-sidebar-password')?.addEventListener('click', () => {
-  document.getElementById('modal-dashboard-settings')?.classList.remove('hidden');
-  setTimeout(() => document.getElementById('input-current-password')?.focus(), 100);
-});
-
-document.getElementById('btn-submit-change-password')?.addEventListener('click', async () => {
+// -------------------------------------------------------------
+// Administrator Password Change Modal
+// -------------------------------------------------------------
+window.openChangePasswordModal = function() {
+  const modal = document.getElementById('modal-change-password');
+  if (!modal) return;
   const currentInput = document.getElementById('input-current-password');
   const newInput = document.getElementById('input-new-password');
+  const confirmInput = document.getElementById('input-confirm-password');
+  const errBox = document.getElementById('password-change-error');
+  if (currentInput) currentInput.value = '';
+  if (newInput) newInput.value = '';
+  if (confirmInput) confirmInput.value = '';
+  if (errBox) { errBox.textContent = ''; errBox.classList.add('hidden'); }
+  modal.classList.remove('hidden');
+  setTimeout(() => currentInput?.focus(), 80);
+};
+
+window.submitPasswordChange = async function() {
+  const currentInput = document.getElementById('input-current-password');
+  const newInput = document.getElementById('input-new-password');
+  const confirmInput = document.getElementById('input-confirm-password');
+  const errBox = document.getElementById('password-change-error');
   const btn = document.getElementById('btn-submit-change-password');
+
+  const showError = (msg) => {
+    if (errBox) {
+      errBox.textContent = msg;
+      errBox.classList.remove('hidden');
+    } else {
+      showToast(msg, 'error');
+    }
+  };
 
   const currentPassword = currentInput?.value;
   const newPassword = newInput?.value;
+  const confirmPassword = confirmInput?.value;
 
   if (!currentPassword) {
-    showToast('Bitte aktuelles Passwort eingeben', 'error');
+    showError('Bitte aktuelles Passwort eingeben');
     currentInput?.focus();
     return;
   }
   if (!newPassword || newPassword.trim().length < 4) {
-    showToast('Neues Passwort muss mindestens 4 Zeichen lang sein', 'error');
+    showError('Neues Passwort muss mindestens 4 Zeichen lang sein');
     newInput?.focus();
     return;
   }
+  if (confirmPassword !== undefined && newPassword !== confirmPassword) {
+    showError('Die Passwörter stimmen nicht überein');
+    confirmInput?.focus();
+    return;
+  }
 
-  btn.disabled = true;
-  const origText = btn.innerHTML;
-  btn.textContent = 'Speichere...';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Speichere...';
+  }
 
   try {
     const res = await fetch('/auth/change-password', {
@@ -1931,20 +1962,36 @@ document.getElementById('btn-submit-change-password')?.addEventListener('click',
       body: JSON.stringify({ currentPassword, newPassword: newPassword.trim() })
     });
     const data = await res.json();
-    if (data.success) {
+    if (res.ok && data.success) {
       showToast(data.message || 'Passwort erfolgreich geändert!', 'success');
+      document.getElementById('modal-change-password')?.classList.add('hidden');
       if (currentInput) currentInput.value = '';
       if (newInput) newInput.value = '';
-      document.getElementById('modal-dashboard-settings')?.classList.add('hidden');
+      if (confirmInput) confirmInput.value = '';
+      if (errBox) { errBox.textContent = ''; errBox.classList.add('hidden'); }
     } else {
-      showToast(data.error || 'Fehler beim Ändern des Passworts', 'error');
+      showError(data.error || 'Fehler beim Ändern des Passworts');
     }
   } catch (err) {
-    showToast('Verbindungsfehler zum Server', 'error');
+    showError('Verbindungsfehler zum Server');
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = origText;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Passwort speichern';
+    }
   }
+};
+
+document.getElementById('btn-sidebar-password')?.addEventListener('click', () => {
+  openChangePasswordModal();
+});
+
+document.getElementById('btn-nav-password')?.addEventListener('click', () => {
+  openChangePasswordModal();
+});
+
+document.getElementById('btn-submit-change-password')?.addEventListener('click', () => {
+  submitPasswordChange();
 });
 
 document.getElementById('btn-sidebar-logout')?.addEventListener('click', async () => {

@@ -107,8 +107,14 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Serve Admin UI static files
-app.use(express.static(publicDir));
+// Serve Admin UI static files (with revalidation headers to prevent stale Cloudflare/browser caching)
+app.use(express.static(publicDir, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
 
 // Routes for Dashboard and API
 app.use('/auth', authRouter);
