@@ -562,7 +562,7 @@
       <div class="config-grid">
         <div class="input-field">
           <label for="cfg-domain">Basis-Domain (Root Domain)</label>
-          <input type="text" id="cfg-domain" value="run.lspx.org" placeholder="z. B. run.lspx.org">
+          <input type="text" id="cfg-domain" value="lspx.org" placeholder="z. B. lspx.org">
         </div>
         <div class="input-field">
           <label for="cfg-wan-ip">Öffentliche IP (Cloudflare WAN)</label>
@@ -640,8 +640,8 @@ apt install -y nodejs</code></pre>
         <div class="step-title-wrap">
           <div class="step-number">2</div>
           <div>
-            <h2 class="step-title">Cloudflare: DNS &amp; Wildcard einrichten</h2>
-            <p class="step-subtitle">Subdomains und Wildcard-Routing für automatische Apps</p>
+            <h2 class="step-title">Cloudflare: DNS &amp; Ursprungszertifikat</h2>
+            <p class="step-subtitle">Voller Schutz mit Orange Wolke und 15 Jahre gültiges SSL-Zertifikat</p>
           </div>
         </div>
         <label class="step-checkbox-wrap">
@@ -652,7 +652,7 @@ apt install -y nodejs</code></pre>
 
       <div class="step-body">
         <p style="font-size:0.88rem;color:#cbd5e1;">
-          Damit SnapHost für jede Bereitstellung automatisch eine eigene Subdomain (z. B. <code class="font-mono" id="cf-preview-sub">mein-spiel.apps.meinedomain.de</code>) erzeugen kann, legst du bei Cloudflare zwei DNS-Einträge an:
+          Damit dein Dashboard unter <strong>run.lspx.org</strong> und jede neue App direkt unter <strong>*.lspx.org</strong> (z. B. <code class="font-mono">mein-spiel.lspx.org</code>) läuft, legst du in Cloudflare folgende zwei DNS-Einträge an:
         </p>
 
         <div class="table-wrap">
@@ -668,42 +668,46 @@ apt install -y nodejs</code></pre>
             <tbody>
               <tr>
                 <td><span class="tag-badge tag-dns">A</span></td>
-                <td><strong class="font-mono" id="cf-record-main">apps</strong></td>
+                <td><strong class="font-mono">run</strong></td>
                 <td><span class="font-mono text-wan-ip">123.45.67.89</span></td>
-                <td><span style="color:#94a3b8;">DNS only (Graue Wolke)</span></td>
+                <td><span style="color:#f59e0b;font-weight:600;">Orange Wolke (Proxied)</span></td>
               </tr>
               <tr>
                 <td><span class="tag-badge tag-wildcard">A (Wildcard)</span></td>
-                <td><strong class="font-mono" id="cf-record-wildcard">*.apps</strong></td>
+                <td><strong class="font-mono">*</strong></td>
                 <td><span class="font-mono text-wan-ip">123.45.67.89</span></td>
-                <td><span style="color:#94a3b8;">DNS only (Graue Wolke)</span></td>
+                <td><span style="color:#f59e0b;font-weight:600;">Orange Wolke (Proxied)</span></td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div class="info-alert">
-          <strong>Warum Graue Wolke (DNS only)?</strong><br>
-          Cloudflare unterstützt im kostenlosen Tarif kein Proxying (orange Wolke) auf mehrstufige Wildcards (wie <code>*.apps.domain.de</code>). Mit der grauen Wolke leitet Cloudflare die Anfragen direkt an deinen Nginx Proxy Manager weiter, und NPM bezieht automatisch ein kostenloses Let's Encrypt Wildcard-Zertifikat.
+        <div class="info-alert" style="background:rgba(16,185,129,0.08);border-color:var(--status-success);">
+          <strong style="color:var(--status-success);">Keine Sorge um bestehende Subdomains:</strong><br>
+          Spezifische DNS-Einträge (wie z. B. <code>cloud.lspx.org</code> oder <code>mail.lspx.org</code>) haben im DNS <strong>immer Vorrang vor dem Sternchen (*)</strong>. Deine bestehenden Dienste bleiben zu 100 % unberührt!
         </div>
 
-        <h3 style="font-size:0.95rem;margin:1.2rem 0 0.5rem;color:#fff;">Cloudflare API-Token erstellen (für automatische SSL-Zertifikate)</h3>
+        <h3 style="font-size:0.95rem;margin:1.4rem 0 0.5rem;color:#fff;">15-Jahre Ursprungszertifikat in Cloudflare erstellen</h3>
         <ul class="checklist">
           <li class="checklist-item">
             <span class="check-icon">&#10003;</span>
-            <span>Öffne dein Cloudflare Profil &rarr; <strong>API Tokens</strong> &rarr; Klicke auf <strong>Create Token</strong>.</span>
+            <span>Gehe in Cloudflare auf <strong>SSL/TLS &rarr; Origin Server &rarr; Create Certificate</strong>.</span>
           </li>
           <li class="checklist-item">
             <span class="check-icon">&#10003;</span>
-            <span>Wähle die Vorlage <strong>Edit zone DNS</strong>.</span>
+            <span>Prüfe, dass <strong>lspx.org</strong> und <strong>*.lspx.org</strong> als Hostnames aufgeführt sind (ist Standard).</span>
           </li>
           <li class="checklist-item">
             <span class="check-icon">&#10003;</span>
-            <span>Unter <em>Zone Resources</em> wählst du: <strong>Include &rarr; Specific zone &rarr; Deine Domain</strong>.</span>
+            <span>Gültigkeit: <strong>15 Jahre</strong> auswählen &rarr; Klicke auf <strong>Create</strong>.</span>
           </li>
           <li class="checklist-item">
             <span class="check-icon">&#10003;</span>
-            <span>Speichere den Token und kopiere ihn &ndash; du trägst ihn gleich in NPM ein.</span>
+            <span>Kopiere den <strong>Private Key</strong> und das <strong>Origin Certificate</strong> &ndash; du fügst sie gleich in NPM ein.</span>
+          </li>
+          <li class="checklist-item">
+            <span class="check-icon">&#10003;</span>
+            <span>Gehe unter <strong>SSL/TLS</strong> auf die Übersicht und stelle den Modus auf <strong>Full (Strict)</strong>.</span>
           </li>
         </ul>
       </div>
@@ -717,8 +721,8 @@ apt install -y nodejs</code></pre>
         <div class="step-title-wrap">
           <div class="step-number">3</div>
           <div>
-            <h2 class="step-title">Nginx Proxy Manager (NPM): SSL &amp; Proxy Host</h2>
-            <p class="step-subtitle">Wildcard Let's Encrypt Zertifikat und WebSocket-Routing</p>
+            <h2 class="step-title">Nginx Proxy Manager (NPM): Ursprungszertifikat &amp; Host</h2>
+            <p class="step-subtitle">Custom Certificate einfügen und Proxy Host mit WebSockets konfigurieren</p>
           </div>
         </div>
         <label class="step-checkbox-wrap">
@@ -728,36 +732,27 @@ apt install -y nodejs</code></pre>
       </div>
 
       <div class="step-body">
-        <h3 style="font-size:0.95rem;margin-bottom:0.6rem;color:#fff;">1. Wildcard-Zertifikat anfordern</h3>
+        <h3 style="font-size:0.95rem;margin-bottom:0.6rem;color:#fff;">1. Ursprungszertifikat einfügen (Custom Certificate)</h3>
         <p style="font-size:0.85rem;color:#cbd5e1;margin-bottom:0.6rem;">
-          Gehe in NPM auf <strong>SSL Certificates</strong> &rarr; <strong>Add SSL Certificate</strong> &rarr; <strong>Let's Encrypt</strong>:
+          Gehe in NPM auf <strong>SSL Certificates</strong> &rarr; <strong>Add SSL Certificate</strong> &rarr; <strong>Custom</strong>:
         </p>
-
-        <div class="code-box">
-          <div class="code-box-header">
-            <span class="code-title">Domain Names im SSL-Fenster</span>
-            <button class="btn btn-secondary btn-sm" onclick="copySnippet('snippet-ssl-domains')">Kopieren</button>
-          </div>
-          <pre id="snippet-ssl-domains"><code>apps.meinedomain.de
-*.apps.meinedomain.de</code></pre>
-        </div>
 
         <ul class="checklist">
           <li class="checklist-item">
             <span class="check-icon">&#10003;</span>
-            <span>Haken bei <strong>Use a DNS Challenge</strong> aktivieren.</span>
+            <span>Name: <strong>Cloudflare Origin (lspx.org)</strong></span>
           </li>
           <li class="checklist-item">
             <span class="check-icon">&#10003;</span>
-            <span>DNS Provider: <strong>Cloudflare</strong> auswählen.</span>
+            <span><strong>Certificate Key:</strong> Füge den <em>Private Key</em> aus Cloudflare ein.</span>
           </li>
           <li class="checklist-item">
             <span class="check-icon">&#10003;</span>
-            <span>Füge deinen Cloudflare API-Token in das Feld ein: <code>dns_cloudflare_api_token = DEIN_TOKEN</code></span>
+            <span><strong>Certificate:</strong> Füge das <em>Origin Certificate</em> aus Cloudflare ein.</span>
           </li>
           <li class="checklist-item">
             <span class="check-icon">&#10003;</span>
-            <span>Speichern &rarr; NPM erstellt das Wildcard-Zertifikat automatisch!</span>
+            <span>Klicke auf <strong>Save</strong> &ndash; fertig! 15 Jahre kein Zertifikats-Stress.</span>
           </li>
         </ul>
 
@@ -771,7 +766,7 @@ apt install -y nodejs</code></pre>
             <tbody>
               <tr>
                 <td><strong>Domain Names</strong></td>
-                <td><span class="font-mono text-domain-pair">apps.meinedomain.de, *.apps.meinedomain.de</span></td>
+                <td><span class="font-mono">run.lspx.org, *.lspx.org, lspx.org</span></td>
               </tr>
               <tr>
                 <td><strong>Scheme / Forward Host / Port</strong></td>
@@ -787,7 +782,7 @@ apt install -y nodejs</code></pre>
               </tr>
               <tr>
                 <td><strong>SSL-Tab</strong></td>
-                <td>Wildcard-Zertifikat auswählen &bull; <strong>Force SSL</strong> &amp; <strong>HTTP/2</strong> aktivieren</td>
+                <td>Dein <em>Cloudflare Origin (lspx.org)</em> auswählen &bull; <strong>Force SSL</strong> &amp; <strong>HTTP/2</strong> aktivieren</td>
               </tr>
             </tbody>
           </table>
@@ -992,33 +987,15 @@ systemctl status snaphost</code></pre>
     const inputPassword = document.getElementById('cfg-password');
 
     function updateDynamicContent() {
-      const domain = (inputDomain.value || 'run.lspx.org').trim();
+      const domain = (inputDomain.value || 'lspx.org').trim();
       const wanIp = (inputWanIp.value || '123.45.67.89').trim();
       const lanIp = (inputLanIp.value || '192.168.1.50').trim();
       const pwd = (inputPassword.value || 'SicheresAdminPasswort2026!').trim();
 
-      // Cloudflare Domain parts
-      const domainParts = domain.split('.');
-      let subPrefix = 'apps';
-      if (domainParts.length > 2) {
-        subPrefix = domainParts[0];
-      }
-
-      document.getElementById('cf-record-main').textContent = subPrefix;
-      document.getElementById('cf-record-wildcard').textContent = '*.' + subPrefix;
-      document.getElementById('cf-preview-sub').textContent = 'mein-spiel.' + domain;
-
-      // Update WAN IPs
+      // Update WAN & LAN IPs
       document.querySelectorAll('.text-wan-ip').forEach(el => el.textContent = wanIp);
       document.querySelectorAll('.text-lan-ip').forEach(el => el.textContent = lanIp);
-      document.querySelectorAll('.text-live-url').forEach(el => el.textContent = 'https://' + domain);
-      document.querySelectorAll('.text-domain-pair').forEach(el => el.textContent = `${domain}, *.${domain}`);
-
-      // SSL Snippet
-      const sslSnippet = document.getElementById('snippet-ssl-domains');
-      if (sslSnippet) {
-        sslSnippet.innerHTML = `<code>${domain}\n*.${domain}</code>`;
-      }
+      document.querySelectorAll('.text-live-url').forEach(el => el.textContent = 'https://run.' + domain);
 
       // .env snippet
       const envSnippet = document.getElementById('snippet-env-content');
@@ -1027,7 +1004,7 @@ systemctl status snaphost</code></pre>
 HOST=0.0.0.0
 NODE_ENV=production
 ROOT_DOMAIN=${domain}
-ADMIN_SUBDOMAIN=admin
+ADMIN_SUBDOMAIN=run
 ADMIN_PASSWORD=${pwd}
 JWT_SECRET=super-geheimer-zufallsschluessel-fuer-snaphost-prod
 DATA_DIR=./data
