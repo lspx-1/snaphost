@@ -1,4 +1,6 @@
 import httpProxy from 'http-proxy';
+import { dockerService } from './docker.js';
+import { appDb } from '../db.js';
 
 const proxy = httpProxy.createProxyServer({
   ws: true,
@@ -35,9 +37,24 @@ export const proxyService = {
   /**
    * Forward HTTP request to container
    */
-  proxyHttp(req, res, app) {
-    const targetHost = app.internal_host || '127.0.0.1';
-    const targetPort = app.internal_port || 3000;
+  async proxyHttp(req, res, app) {
+    let targetHost = app.internal_host || '127.0.0.1';
+    let targetPort = app.internal_port || 3000;
+
+    // Dynamically resolve container host/port if unrouted container name or placeholder
+    if ((targetHost.startsWith('snaphost-') || (targetHost === '127.0.0.1' && targetPort === 3000)) && app.container_id) {
+      try {
+        const resolved = await dockerService.getContainerEndpoint(app.container_id, targetPort);
+        if (resolved) {
+          targetHost = resolved.host;
+          targetPort = resolved.port;
+          appDb.updateApp(app.id, { internal_host: targetHost, internal_port: targetPort });
+        }
+      } catch (err) {
+        console.warn(`[Proxy] Konnte Container-Endpoint für ${app.subdomain} nicht dynamisch auflösen:`, err.message);
+      }
+    }
+
     const target = `http://${targetHost}:${targetPort}`;
 
     proxy.web(req, res, {
@@ -53,9 +70,21 @@ export const proxyService = {
   /**
    * Forward WebSocket upgrade connection to container
    */
-  proxyWs(req, socket, head, app) {
-    const targetHost = app.internal_host || '127.0.0.1';
-    const targetPort = app.internal_port || 3000;
+  async proxyWs(req, socket, head, app) {
+    let targetHost = app.internal_host || '127.0.0.1';
+    let targetPort = app.internal_port || 3000;
+
+    if ((targetHost.startsWith('snaphost-') || (targetHost === '127.0.0.1' && targetPort === 3000)) && app.container_id) {
+      try {
+        const resolved = await dockerService.getContainerEndpoint(app.container_id, targetPort);
+        if (resolved) {
+          targetHost = resolved.host;
+          targetPort = resolved.port;
+          appDb.updateApp(app.id, { internal_host: targetHost, internal_port: targetPort });
+        }
+      } catch (_) {}
+    }
+
     const target = `http://${targetHost}:${targetPort}`;
 
     proxy.ws(req, socket, head, {

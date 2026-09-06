@@ -151,6 +151,9 @@ ${singleStartCmd}
         [`${port}/tcp`]: {}
       },
       HostConfig: {
+        PortBindings: {
+          [`${port}/tcp`]: [{ HostIp: '127.0.0.1', HostPort: '' }]
+        },
         NetworkMode: config.dockerNetwork,
         Memory: config.dockerMemoryLimit,
         RestartPolicy: {
@@ -163,12 +166,72 @@ ${singleStartCmd}
     await container.start();
     console.log(`[Docker] Container ${containerName} läuft erfolgreich.`);
 
+    // Inspect container to resolve the dynamic host port or bridge IP
+    let internalHost = '127.0.0.1';
+    let internalPort = port;
+
+    try {
+      const inspect = await container.inspect();
+      const portBindings = inspect.NetworkSettings?.Ports?.[`${port}/tcp`];
+      if (portBindings && portBindings.length > 0 && portBindings[0].HostPort) {
+        internalHost = '127.0.0.1';
+        internalPort = parseInt(portBindings[0].HostPort, 10);
+      } else {
+        const net = inspect.NetworkSettings?.Networks?.[config.dockerNetwork] || Object.values(inspect.NetworkSettings?.Networks || {})[0];
+        if (net && net.IPAddress) {
+          internalHost = net.IPAddress;
+          internalPort = port;
+        }
+      }
+    } catch (inspectErr) {
+      console.warn(`[Docker] Inspect nach Start fehlgeschlagen:`, inspectErr.message);
+    }
+
+    console.log(`[Docker] Routing für ${containerName}: http://${internalHost}:${internalPort}`);
+
     return {
       containerId: container.id,
       containerName,
-      internalHost: containerName, // resolvable inside snaphost-net
-      internalPort: port
+      internalHost,
+      internalPort
     };
+  }
+
+  /**
+   * Resolve live host & port for a running container
+   */
+  async getContainerEndpoint(containerIdOrName, fallbackPort = 3000) {
+    if (!this.isAvailable || !containerIdOrName) return null;
+    try {
+      const container = this.docker.getContainer(containerIdOrName);
+      const inspect = await container.inspect();
+      if (!inspect.State.Running) return null;
+
+      // 1. Check for bound host port on 127.0.0.1
+      const ports = inspect.NetworkSettings?.Ports || {};
+      for (const [portSpec, bindings] of Object.entries(ports)) {
+        if (bindings && bindings.length > 0 && bindings[0].HostPort) {
+          return {
+            host: bindings[0].HostIp || '127.0.0.1',
+            port: parseInt(bindings[0].HostPort, 10)
+          };
+        }
+      }
+
+      // 2. Check for container bridge IP
+      const networks = inspect.NetworkSettings?.Networks || {};
+      const net = networks[config.dockerNetwork] || Object.values(networks)[0];
+      if (net && net.IPAddress) {
+        return {
+          host: net.IPAddress,
+          port: fallbackPort
+        };
+      }
+
+      return null;
+    } catch (err) {
+      return null;
+    }
   }
 
   /**
