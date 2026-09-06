@@ -562,7 +562,7 @@
       <div class="config-grid">
         <div class="input-field">
           <label for="cfg-domain">Basis-Domain (Root Domain)</label>
-          <input type="text" id="cfg-domain" value="apps.meinedomain.de" placeholder="z. B. apps.meinedomain.de">
+          <input type="text" id="cfg-domain" value="run.lspx.org" placeholder="z. B. run.lspx.org">
         </div>
         <div class="input-field">
           <label for="cfg-wan-ip">Öffentliche IP (Cloudflare WAN)</label>
@@ -992,7 +992,7 @@ systemctl status snaphost</code></pre>
     const inputPassword = document.getElementById('cfg-password');
 
     function updateDynamicContent() {
-      const domain = (inputDomain.value || 'apps.meinedomain.de').trim();
+      const domain = (inputDomain.value || 'run.lspx.org').trim();
       const wanIp = (inputWanIp.value || '123.45.67.89').trim();
       const lanIp = (inputLanIp.value || '192.168.1.50').trim();
       const pwd = (inputPassword.value || 'SicheresAdminPasswort2026!').trim();
