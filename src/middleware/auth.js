@@ -40,7 +40,7 @@ export function requireAuth(req, res, next) {
   }
 
   // If request is an API request, return 401 JSON
-  if (req.path.startsWith('/api/')) {
+  if (req.path.startsWith('/api/') || req.baseUrl?.startsWith('/api') || req.originalUrl?.startsWith('/api') || req.xhr || req.headers.accept?.includes('application/json')) {
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Ungültiger oder fehlender Authentifizierungsschlüssel (API Key oder Login erforderlich)'

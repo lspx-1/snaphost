@@ -61,6 +61,11 @@ npx snaphost rebuild mein-projekt
 # Sofortiges Rollback zur vorherigen stabilen Version:
 npx snaphost rollback mein-projekt
 
+# Quellcode herunterladen & entpacken (z. B. für Weiterentwicklung oder KI-Bearbeitung):
+npx snaphost pull mein-projekt
+# Optional in einen bestimmten Zielordner:
+npx snaphost pull mein-projekt ./zielordner
+
 # App / Container anhalten (offline nehmen):
 npx snaphost stop mein-projekt
 

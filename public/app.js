@@ -967,6 +967,11 @@ npx snaphost rebuild mein-projekt
 # Sofortiges Rollback zur vorherigen stabilen Version:
 npx snaphost rollback mein-projekt
 
+# Quellcode herunterladen & entpacken (z. B. für Weiterentwicklung oder KI-Bearbeitung):
+npx snaphost pull mein-projekt
+# Optional in einen bestimmten Zielordner:
+npx snaphost pull mein-projekt ./zielordner
+
 # App / Container anhalten (offline nehmen):
 npx snaphost stop mein-projekt
 
@@ -1095,6 +1100,9 @@ curl -sS -X GET "${baseApi}/apps/mein-spiel" \\
 ### Alle Apps auflisten:
 curl -sS -X GET "${baseApi}/apps" \\
   -H "Authorization: Bearer ${apiKey}"
+
+### Quellcode als ZIP herunterladen:
+curl -sS -O -J -H "Authorization: Bearer ${apiKey}" "${baseApi}/apps/mein-spiel/download"
 
 ### App löschen:
 curl -sS -X DELETE "${baseApi}/apps/mein-spiel" \\
@@ -1388,6 +1396,12 @@ window.openAppDetails = async function(appId, initialTab = 'overview') {
     const powerLabel = document.getElementById('btn-action-power-label');
     powerLabel.textContent = app.status === 'stopped' ? 'Wieder online stellen' : 'Offline nehmen';
     document.getElementById('btn-action-open').href = app.url;
+
+    const downloadBtn = document.getElementById('btn-action-download');
+    if (downloadBtn) {
+      downloadBtn.href = `/api/apps/${app.id}/download`;
+      downloadBtn.download = `${app.subdomain}-v${app.version || 1}.zip`;
+    }
 
     // Populate Settings Tab Fields
     document.getElementById('settings-title').value = app.title || '';

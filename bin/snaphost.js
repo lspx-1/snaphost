@@ -105,6 +105,31 @@ async function createZipBuffer(targetPath) {
 }
 
 // -------------------------------------------------------------
+// Helper: Extract ZIP buffer to target directory
+// -------------------------------------------------------------
+async function extractZipBuffer(buffer, destinationDir) {
+  try {
+    const AdmZip = (await import('adm-zip')).default;
+    const zip = new AdmZip(buffer);
+    zip.extractAllTo(destinationDir, true);
+    return;
+  } catch (_) {
+    // OS-level fallback
+    const tempZip = path.join(os.tmpdir(), `snaphost-pull-${Date.now()}.zip`);
+    fs.writeFileSync(tempZip, buffer);
+    try {
+      if (process.platform === 'win32') {
+        execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${tempZip}' -DestinationPath '${destinationDir}' -Force"`);
+      } else {
+        execSync(`unzip -q -o "${tempZip}" -d "${destinationDir}"`);
+      }
+    } finally {
+      try { fs.unlinkSync(tempZip); } catch (_) {}
+    }
+  }
+}
+
+// -------------------------------------------------------------
 // CLI Commands
 // -------------------------------------------------------------
 async function cmdLogin(args, flags) {
@@ -237,6 +262,57 @@ async function cmdDeploy(args, flags) {
     console.log(`Im Browser öffnen:   snaphost open ${data.subdomain}\n`);
   } catch (err) {
     console.error(`\n❌ Netzwerkfehler beim Upload: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+async function cmdPull(args, flags) {
+  const { server, token } = resolveCredentials(flags);
+  const identifier = args[0];
+  if (!identifier) {
+    console.error('❌ Bitte Subdomain oder App-ID angeben: snaphost pull <slug> [zielordner]');
+    process.exit(1);
+  }
+
+  const destDir = args[1] || flags.out || flags.dir || path.join(process.cwd(), identifier);
+  console.log(`⚡ Lade Quellcode für '${identifier}' von ${server} herunter...`);
+
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${server}/api/apps/${identifier}/download`, { headers });
+    if (res.status === 401 || res.status === 403) {
+      console.error('❌ Nicht autorisiert. Bitte führe "snaphost login" aus oder gib ein gültiges Token an.');
+      process.exit(1);
+    }
+    if (res.status === 404) {
+      console.error(`❌ Bereitstellung oder Quellcode für '${identifier}' nicht gefunden.`);
+      process.exit(1);
+    }
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`❌ Download fehlgeschlagen (${res.status}): ${errText}`);
+      process.exit(1);
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+    const zipBuffer = Buffer.from(arrayBuffer);
+
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    await extractZipBuffer(zipBuffer, destDir);
+
+    console.log(`\n✓ Quellcode für '${identifier}' erfolgreich heruntergeladen und entpackt!`);
+    console.log(`• Zielverzeichnis: ${path.resolve(destDir)}`);
+    console.log(`\nNächste Schritte:`);
+    console.log(`  cd ${path.relative(process.cwd(), destDir) || '.'}`);
+    console.log(`  # Quellcode anpassen / entwickeln`);
+    console.log(`  npx snaphost deploy\n`);
+  } catch (err) {
+    console.error(`❌ Fehler beim Herunterladen: ${err.message}`);
     process.exit(1);
   }
 }
@@ -486,6 +562,7 @@ NUTZUNG:
 
 BEFEHLE:
   deploy [pfad]      Projekt hochladen (Dateien, Ordner, dist/, ZIP oder .html)
+  pull <slug> [dir]  Quellcode herunterladen & entpacken (Alias: download, clone)
   logs <slug>        Live-Container & Build-Logs ausgeben (z. B. snaphost logs mein-spiel)
   status <slug>      Status, Version, URL und Details einer App prüfen
   list (oder ls)     Alle aktiven Bereitstellungen tabellarisch auflisten
@@ -511,6 +588,8 @@ FLAGS:
 
 BEISPIELE:
   npx snaphost deploy                                    # Aktuellen Ordner deployen
+  npx snaphost pull mein-spiel                           # Quellcode herunterladen & entpacken
+  npx snaphost pull mein-spiel ./dev-ordner              # In speziellen Ordner entpacken
   npx snaphost deploy ./dist --slug mein-spiel           # Build-Ordner mit festem Namen
   npx snaphost deploy . --ttl permanent                  # Dauerhafter Link
   npx snaphost logs mein-spiel --tail 150                # Logs zum Debuggen lesen
@@ -555,6 +634,11 @@ async function main() {
       break;
     case 'deploy':
       await cmdDeploy(positional, flags);
+      break;
+    case 'pull':
+    case 'download':
+    case 'clone':
+      await cmdPull(positional, flags);
       break;
     case 'logs':
       await cmdLogs(positional, flags);

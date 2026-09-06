@@ -8,6 +8,7 @@ import { deployerService } from '../services/deployer.js';
 import { dockerService } from '../services/docker.js';
 import { requireAuth } from '../middleware/auth.js';
 import { sanitizeSubdomain } from '../utils/slug.js';
+import AdmZip from 'adm-zip';
 
 export const apiRouter = express.Router();
 
@@ -372,6 +373,48 @@ apiRouter.get(['/apps/:identifier/logs', '/sites/:identifier/logs'], requireAuth
   }
 
   res.json({ ok: true, success: true, logs: combined.trim() });
+});
+
+// -------------------------------------------------------------
+// 10b. Download App Source Bundle (ZIP)
+// -------------------------------------------------------------
+apiRouter.get(['/apps/:identifier/download', '/sites/:identifier/download', '/apps/:identifier/bundle'], requireAuth, async (req, res) => {
+  const app = appDb.getAppByIdOrSubdomain(req.params.identifier);
+  if (!app) return res.status(404).json({ ok: false, success: false, error: 'App nicht gefunden' });
+
+  const contentDir = path.join(config.appsDir, app.id, 'content');
+  if (!fs.existsSync(contentDir)) {
+    return res.status(404).json({ ok: false, success: false, error: 'Keine Quellcodedateien für diese App gefunden.' });
+  }
+
+  try {
+    const zip = new AdmZip();
+
+    // Recursively add files from contentDir, skipping node_modules, .git, etc.
+    function addDir(localPath, zipPrefix = '') {
+      const entries = fs.readdirSync(localPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.DS_Store' || entry.name === '.next' || entry.name === '.cache') continue;
+        const fullPath = path.join(localPath, entry.name);
+        const zipEntryPath = zipPrefix ? `${zipPrefix}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) {
+          addDir(fullPath, zipEntryPath);
+        } else if (entry.isFile()) {
+          zip.addLocalFile(fullPath, zipPrefix);
+        }
+      }
+    }
+
+    addDir(contentDir);
+    const buffer = zip.toBuffer();
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${app.subdomain}-v${app.version || 1}.zip"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ ok: false, success: false, error: 'Fehler beim Erstellen des ZIP-Archivs: ' + err.message });
+  }
 });
 
 // -------------------------------------------------------------
