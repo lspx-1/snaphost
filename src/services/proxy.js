@@ -33,6 +33,26 @@ proxy.on('error', (err, req, res) => {
   }
 });
 
+// Restream body if it was parsed by any middleware upstream
+proxy.on('proxyReq', (proxyReq, req) => {
+  if (!req.body || (typeof req.body === 'object' && Object.keys(req.body).length === 0)) return;
+  const contentType = (req.headers['content-type'] || '').toLowerCase();
+  let bodyData;
+  if (typeof req.body === 'object' || Array.isArray(req.body)) {
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      bodyData = new URLSearchParams(req.body).toString();
+    } else {
+      bodyData = JSON.stringify(req.body);
+    }
+  } else if (typeof req.body === 'string') {
+    bodyData = req.body;
+  }
+  if (bodyData) {
+    proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+    proxyReq.write(bodyData);
+  }
+});
+
 export const proxyService = {
   /**
    * Forward HTTP request to container

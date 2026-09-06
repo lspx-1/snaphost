@@ -20,9 +20,7 @@ const publicDir = path.join(rootDir, 'public');
 
 const app = express();
 
-// Standard middlewares
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Standard middlewares (headers only, do not consume body stream before proxying)
 app.use(cookieParser());
 
 // Subdomain resolver helper
@@ -117,6 +115,10 @@ app.use(express.static(publicDir, {
     }
   }
 }));
+
+// Body parsers for SnapHost Dashboard & Management API (placed AFTER subdomain proxy)
+app.use(express.json({ limit: `${config.maxUploadSizeBytes || 250 * 1024 * 1024}b` }));
+app.use(express.urlencoded({ extended: true, limit: `${config.maxUploadSizeBytes || 250 * 1024 * 1024}b` }));
 
 // Routes for Dashboard and API
 app.use('/auth', authRouter);
