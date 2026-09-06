@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import AdmZip from 'adm-zip';
 import { config } from '../config.js';
 import { appDb } from '../db.js';
-import { generateSlug, sanitizeSubdomain } from '../utils/slug.js';
+import { generateSlug, sanitizeSubdomain, extractBaseSlug, resolveUniqueSlug } from '../utils/slug.js';
 import { dockerService } from './docker.js';
 
 export const deployerService = {
@@ -57,8 +57,8 @@ export const deployerService = {
     let existingApp = null;
     let finalSubdomain = null;
 
-    if (customSubdomain) {
-      const sanitized = sanitizeSubdomain(customSubdomain);
+    if (customSubdomain && typeof customSubdomain === 'string' && customSubdomain.trim()) {
+      const sanitized = sanitizeSubdomain(customSubdomain.trim());
       if (!sanitized) {
         throw new Error('Ungültiger Subdomain-Name. Erlaubt sind min. 3 Kleinbuchstaben, Ziffern und Bindestriche.');
       }
@@ -80,17 +80,22 @@ export const deployerService = {
       });
     }
 
-    // 2. Fresh deployment
+    // 2. Fresh deployment: derive from filename or fallback to random slug
     if (!finalSubdomain) {
-      for (let i = 0; i < 10; i++) {
-        const slug = generateSlug();
-        if (!appDb.getAppBySubdomain(slug)) {
-          finalSubdomain = slug;
-          break;
+      const candidateSlug = extractBaseSlug(originalFilename);
+      if (candidateSlug) {
+        finalSubdomain = resolveUniqueSlug(candidateSlug, (slug) => !!appDb.getAppBySubdomain(slug));
+      } else {
+        for (let i = 0; i < 10; i++) {
+          const slug = generateSlug();
+          if (!appDb.getAppBySubdomain(slug)) {
+            finalSubdomain = slug;
+            break;
+          }
         }
-      }
-      if (!finalSubdomain) {
-        finalSubdomain = 'app-' + crypto.randomBytes(4).toString('hex');
+        if (!finalSubdomain) {
+          finalSubdomain = 'app-' + crypto.randomBytes(4).toString('hex');
+        }
       }
     }
 

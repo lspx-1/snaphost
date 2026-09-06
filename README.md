@@ -5,7 +5,7 @@
 * ⚡ **Statische Webseiten:** In Millisekunden bereitgestellt (HTML, CSS, JS, Vite / React Builds).
 * 🐳 **Interaktive Apps & Multiplayer-Spiele:** Startet isolierte Docker-Container (Node.js, WebSockets, Python).
 * ⏱️ **Ablaufdatum (TTL):** Automatische Bereinigung nach 1h, 24h, 7d oder dauerhafte Links.
-* ✏️ **Dynamische Subdomains:** Zufällige Slugs (`swift-fox-42`) oder im Admin-Panel umbenennbar (`mein-spiel`).
+* ✏️ **Smarte Subdomains:** Automatisch aus Dateiname abgeleitet (z. B. `mein-spiel.zip` -> `mein-spiel`), Zufalls-Slugs oder eigene Wunsch-Namen.
 * 🤖 **KI-Schnittstelle:** Mit nur einem cURL-Befehl lädt jede KI (Claude, Cursor, Antigravity, ChatGPT) fertige Projekte direkt hoch.
 * 🎛️ **Admin-Dashboard:** Übersicht mit Login, Drag & Drop Upload, Live-Logs, API-Keys und Link-Management.
 

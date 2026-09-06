@@ -209,14 +209,39 @@ btnLogout.addEventListener('click', async () => {
 tabBtnFile.addEventListener('click', () => switchTab('tab-file'));
 tabBtnCode.addEventListener('click', () => switchTab('tab-code'));
 
+function deriveBaseSlug(filename) {
+  if (!filename || typeof filename !== 'string') return '';
+  const raw = filename.split(/[/\\]/).pop().trim();
+  const stripped = raw.replace(/\.(tar\.(gz|bz2|xz)|zip|tgz|tar|html|htm)$/i, '').trim();
+  let slug = stripped.toLowerCase()
+    .replace(/[\s_.]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (slug.length < 3) return '';
+  if (slug.length > 48) slug = slug.substring(0, 48).replace(/-+$/, '');
+  return slug;
+}
+
 function switchTab(tabId) {
   activeTab = tabId;
+  const hintEl = document.getElementById('deploy-subdomain-hint');
   if (tabId === 'tab-file') {
     tabBtnFile.classList.add('active');
     tabBtnCode.classList.remove('active');
     tabFileContent.classList.remove('hidden');
     tabCodeContent.classList.add('hidden');
     btnDeploySubmit.disabled = !selectedFile;
+    if (selectedFile) {
+      const baseSlug = deriveBaseSlug(selectedFile.name);
+      if (baseSlug) {
+        deploySubdomain.placeholder = `Standard: ${baseSlug} (oder eigene Subdomain)`;
+        if (hintEl) hintEl.textContent = `(Standard: ${baseSlug})`;
+      }
+    } else {
+      deploySubdomain.placeholder = 'z. B. mein-spiel (leer = Standard wie Dateiname)';
+      if (hintEl) hintEl.textContent = '(leer = Standard aus Dateiname)';
+    }
   } else {
     tabBtnCode.classList.add('active');
     tabBtnFile.classList.remove('active');
@@ -224,6 +249,8 @@ function switchTab(tabId) {
     tabFileContent.classList.add('hidden');
     deployType.value = 'static';
     btnDeploySubmit.disabled = !rawHtmlInput.value.trim();
+    deploySubdomain.placeholder = 'z. B. mein-snippet (leer = Zufallslink)';
+    if (hintEl) hintEl.textContent = '(leer = Zufallslink)';
   }
 }
 
@@ -298,6 +325,16 @@ function handleFileSelect(file) {
 
   fileSelectedName.style.color = 'var(--text-primary)';
   btnDeploySubmit.disabled = false;
+
+  const baseSlug = deriveBaseSlug(file.name);
+  const hintEl = document.getElementById('deploy-subdomain-hint');
+  if (baseSlug) {
+    deploySubdomain.placeholder = `Standard: ${baseSlug} (oder eigene Subdomain)`;
+    if (hintEl) hintEl.textContent = `(Standard: ${baseSlug})`;
+  } else {
+    deploySubdomain.placeholder = 'z. B. mein-spiel (leer = Zufallslink)';
+    if (hintEl) hintEl.textContent = '(optional)';
+  }
 }
 
 deployForm.addEventListener('submit', async (e) => {
@@ -335,6 +372,9 @@ deployForm.addEventListener('submit', async (e) => {
       fileInput.value = '';
       rawHtmlInput.value = '';
       deploySubdomain.value = '';
+      deploySubdomain.placeholder = 'z. B. mein-spiel (leer = Standard wie Dateiname)';
+      const hintEl = document.getElementById('deploy-subdomain-hint');
+      if (hintEl) hintEl.textContent = '(leer = Standard aus Dateiname)';
       fileSelectedName.textContent = 'Unterstützt ZIP-Dateien (Builds, Node.js Server) sowie einzelne .html Dokumente';
       fileSelectedName.style.color = '';
       btnDeploySubmit.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> <span>Bereitstellen</span>`;
