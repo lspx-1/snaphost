@@ -150,6 +150,9 @@ export const deployerService = {
     if (!appType || appType === 'auto') {
       appType = this.detectType(contentDir);
     }
+    if (appType === 'node' || appType === 'nodejs' || appType === 'container') {
+      appType = 'docker';
+    }
 
     const resolvedTtl = ttl || manifest.ttl || config.defaultTtl;
     const expiresAt = this.calculateExpiresAt(resolvedTtl);
@@ -291,6 +294,9 @@ export const deployerService = {
     let appType = isHtmlDirect ? 'static' : (requestedType || manifest.type || app.type);
     if (!requestedType || requestedType === 'auto') {
       appType = isHtmlDirect ? 'static' : this.detectType(contentDir);
+    }
+    if (appType === 'node' || appType === 'nodejs' || appType === 'container') {
+      appType = 'docker';
     }
 
     const updates = {
