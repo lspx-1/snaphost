@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SnapHost Leitstand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<style>
+/* Layout: dichte Betriebsliste. Kopfzeile mit Befehlsleiste, darunter Status-Band, Tabelle, Aktivitätsprotokoll. */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --panel-2:#f8f9fb; --line:#dfe3ea; --line-2:#c9cfda;
+  --text:#14181f; --muted:#5a6475; --faint:#8791a3;
+  --accent:#2b4cff; --accent-ink:#ffffff; --accent-soft:#e8ecff;
+  --ok:#0f8a4b; --ok-bg:#e1f5ea; --warn:#a15c00; --warn-bg:#fdf0d5; --err:#c4243b; --err-bg:#fde6e9;
+  --code-bg:#0f1420; --code-fg:#cfd6e6;
+  --serif:'Fraunces',Georgia,serif; --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1017; --panel:#141923; --panel-2:#10141c; --line:#232a38; --line-2:#323b4e;
+  --text:#e8ecf4; --muted:#98a2b6; --faint:#667086;
+  --accent:#7b93ff; --accent-ink:#0b1030; --accent-soft:#1b2347;
+  --ok:#4cd98a; --ok-bg:#12301f; --warn:#f0b64a; --warn-bg:#35280e; --err:#ff7a8c; --err-bg:#3a161d;
+  --code-bg:#080b11; --code-fg:#cfd6e6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1017; --panel:#141923; --panel-2:#10141c; --line:#232a38; --line-2:#323b4e;
+  --text:#e8ecf4; --muted:#98a2b6; --faint:#667086;
+  --accent:#7b93ff; --accent-ink:#0b1030; --accent-soft:#1b2347;
+  --ok:#4cd98a; --ok-bg:#12301f; --warn:#f0b64a; --warn-bg:#35280e; --err:#ff7a8c; --err-bg:#3a161d;
+  --code-bg:#080b11; --code-fg:#cfd6e6; color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);padding-inline:16px;padding-block:0 60px;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:5px}
+.mono{font-family:var(--mono)}
+.wrap{max-width:1180px;margin:0 auto}
+
+/* Kopf */
+.head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:18px}
+.brand{font:600 22px var(--serif);letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+.brand i{width:22px;height:22px;border-radius:6px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink)}
+.host{font:12px var(--mono);color:var(--muted);padding:3px 9px;border:1px solid var(--line);border-radius:5px;background:var(--panel)}
+.sp{flex:1}
+.cmd{display:flex;align-items:center;gap:10px;height:38px;padding:0 12px;min-width:min(340px,100%);background:var(--panel);border:1px solid var(--line-2);border-radius:8px;color:var(--faint);text-align:left;flex:0 1 380px}
+.cmd:hover{border-color:var(--accent)}
+.cmd span{flex:1;font-size:13.5px}
+.k{font:11px var(--mono);border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--muted);background:var(--panel-2)}
+.btn{height:38px;padding:0 14px;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:8px}
+.btn-p{background:var(--accent);color:var(--accent-ink)}
+.btn-p:hover{filter:brightness(1.08)}
+.btn-g{border:1px solid var(--line-2);background:var(--panel);color:var(--muted)}
+.btn-g:hover{color:var(--text)}
+
+/* Statusband */
+.band{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.band>div{padding:12px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px;min-width:0}
+.band>div:last-child{border:0}
+.band small{font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.band b{font:600 24px var(--serif);font-variant-numeric:tabular-nums}
+.band .w{color:var(--warn)} .band .e{color:var(--err)} .band .o{color:var(--ok)}
+
+/* Werkzeugleiste */
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:22px 0 10px}
+.bar h2{font:600 18px var(--serif);margin-right:auto}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.pill b{font:500 12px var(--mono);color:var(--faint)}
+.pill.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+.pill.on b{color:var(--bg);opacity:.7}
+.find{height:30px;display:flex;align-items:center;gap:6px;padding:0 10px;border:1px solid var(--line-2);border-radius:6px;background:var(--panel);color:var(--faint)}
+.find input{background:none;border:0;outline:0;width:130px;font-size:13px}
+
+/* Tabelle */
+.tbl{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.tr{display:grid;grid-template-columns:minmax(0,2.2fr) 110px 100px minmax(0,1.3fr) 120px 74px;gap:14px;align-items:center;padding:0 16px;min-height:54px;border-bottom:1px solid var(--line);text-align:left;width:100%}
+.tr:last-child{border:0}
+.th{min-height:36px;background:var(--panel-2);font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+button.tr{cursor:pointer;transition:background .12s}
+button.tr:hover,button.tr.sel{background:var(--accent-soft)}
+.nm{display:flex;flex-direction:column;min-width:0}
+.nm b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm span{font:12px var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st{display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 8px;border-radius:5px;font-size:12.5px;font-weight:500;width:max-content}
+.st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st.ok{background:var(--ok-bg);color:var(--ok)} .st.build{background:var(--warn-bg);color:var(--warn)} .st.error{background:var(--err-bg);color:var(--err)}
+.st.build::before{animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.25}}
+.ty{font:12px var(--mono);color:var(--muted)}
+.life{display:flex;flex-direction:column;gap:4px;min-width:0}
+.life span{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meter{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.meter.low i{background:var(--warn)} .meter.perm i{background:var(--ok)}
+svg.spark{width:100%;height:26px;display:block}
+.act{display:flex;gap:2px;justify-content:flex-end;color:var(--faint)}
+.act span{width:28px;height:28px;display:grid;place-items:center;border-radius:6px}
+.act span:hover{background:var(--panel);color:var(--text);box-shadow:inset 0 0 0 1px var(--line-2)}
+.hide-m{display:block}
+
+/* Unterer Bereich */
+.low2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;margin-top:22px}
+.box{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:16px;min-width:0}
+.box h3{font:600 15px var(--serif);margin-bottom:12px}
+.feed{list-style:none;display:flex;flex-direction:column;gap:10px}
+.feed li{display:grid;grid-template-columns:54px 1fr;gap:10px;font-size:13px}
+.feed time{font:12px var(--mono);color:var(--faint)}
+.feed em{font-style:normal;font-family:var(--mono);font-size:12.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.cli{background:var(--code-bg);color:var(--code-fg);border-radius:8px;padding:14px;font:12.5px/1.8 var(--mono);overflow-x:auto}
+.cli .d{color:#6b7690}.cli .g{color:#5fe39a}
+
+/* Palette */
+.scrim{position:fixed;inset:0;background:rgba(10,14,24,.5);z-index:40;display:none;align-items:flex-start;justify-content:center;padding:12vh 16px 0}
+.scrim.on{display:flex}
+.pal{width:min(560px,100%);background:var(--panel);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden}
+.pal input{width:100%;height:52px;border:0;border-bottom:1px solid var(--line);background:none;padding:0 16px;font-size:16px;outline:0}
+.pal ul{list-style:none;padding:6px;max-height:300px;overflow:auto}
+.pal li button{width:100%;text-align:left;display:flex;align-items:center;gap:12px;padding:10px;border-radius:7px}
+.pal li button:hover,.pal li button.h{background:var(--accent-soft)}
+.pal li small{margin-left:auto;font:12px var(--mono);color:var(--faint)}
+.pal .dz{margin:10px;border:1.5px dashed var(--line-2);border-radius:8px;padding:18px;text-align:center;color:var(--muted);font-size:13px}
+.pal .dz b{display:block;color:var(--text);font-size:14px;margin-bottom:2px}
+
+/* Detail */
+.side{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--panel);border-left:1px solid var(--line-2);z-index:30;transform:translateX(102%);visibility:hidden;transition:transform .25s ease,visibility .25s;padding:20px;overflow:auto}
+.side.on{transform:none;visibility:visible;box-shadow:-20px 0 50px rgba(0,0,0,.18)}
+.side h3{font:600 22px var(--serif)}
+.side .row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.side .row span:first-child{color:var(--muted)}
+.side .top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.x{margin-left:auto;width:32px;height:32px;border-radius:7px;border:1px solid var(--line-2);display:grid;place-items:center;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);opacity:0;background:var(--text);color:var(--bg);padding:9px 14px;border-radius:8px;font-weight:500;font-size:13.5px;transition:.25s;z-index:60;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media(max-width:820px){
+  .tr{grid-template-columns:minmax(0,1fr) auto;row-gap:6px;padding-block:12px}
+  .th{display:none}
+  .tr .ty,.tr .spk,.tr .act{display:none}
+  .tr .life{grid-column:1/-1;flex-direction:row;align-items:center;gap:10px}
+  .tr .life .meter{flex:1}
+  .low2{grid-template-columns:1fr}
+  .find input{width:90px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div class="brand"><i><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h8l-1 8 10-12h-8z"/></svg></i>SnapHost</div>
+    <span class="host">run.lspx.org</span>
+    <span class="sp"></span>
+    <button class="cmd" id="open-pal" aria-label="Befehlsleiste öffnen">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span>Deployen, suchen, Befehl ausführen…</span><kbd class="k">Strg K</kbd>
+    </button>
+    <button class="btn btn-p" id="new"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Neu</button>
+    <button class="btn btn-g" id="theme" aria-label="Theme wechseln">Hell/Dunkel</button>
+  </header>
+
+  <section class="band" aria-label="Zustand">
+    <div><small>Online</small><b class="o" id="b-ok">0</b></div>
+    <div><small>Im Bau</small><b id="b-build">0</b></div>
+    <div><small>Fehler</small><b class="e" id="b-err">0</b></div>
+    <div><small>Ablauf &lt; 24 Std</small><b class="w" id="b-exp">0</b></div>
+    <div><small>Speicher</small><b>1,4 <span style="font:500 13px var(--mono);color:var(--faint)">/ 20 GB</span></b></div>
+  </section>
+
+  <div class="bar">
+    <h2>Deployments</h2>
+    <div class="pills" id="pills"></div>
+    <label class="find"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Filtern" aria-label="Filtern"></label>
+  </div>
+
+  <div class="tbl" id="tbl"></div>
+
+  <div class="low2">
+    <section class="box">
+      <h3>Aktivität</h3>
+      <ul class="feed" id="feed"></ul>
+    </section>
+    <section class="box">
+      <h3>Per Terminal</h3>
+      <div class="cli"><span class="d">$</span> npx snaphost deploy ./dist<br><span class="g">✓</span> mein-spiel.lspx.org <span class="d">· 1,3 s</span><br><span class="d">$</span> npx snaphost ls --expiring<br><span class="d">landing-test  1 Std</span></div>
+    </section>
+  </div>
+</div>
+
+<aside class="side" id="side" aria-hidden="true">
+  <div class="top"><h3 id="s-name"></h3><span id="s-st"></span><button class="x" id="s-x" aria-label="Schließen">✕</button></div>
+  <p class="mono" id="s-url" style="color:var(--accent);font-size:13px;margin-bottom:14px"></p>
+  <div id="s-rows"></div>
+  <div class="cli" style="margin-top:16px"><span class="d">14:02:34</span> Container gestartet <span class="d">:49213</span><br><span class="d">14:02:36</span> <span class="g">Listening on :3000</span></div>
+  <div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-p">Öffnen ↗</button><button class="btn btn-g">Neu starten</button><button class="btn btn-g" style="color:var(--err)">Löschen</button></div>
+</aside>
+
+<div class="scrim" id="scrim"><div class="pal" role="dialog" aria-label="Befehlsleiste">
+  <input id="pin" placeholder="Name eingeben oder Befehl wählen…" autocomplete="off">
+  <div class="dz"><b>ZIP oder .html hier ablegen</b>Typ und Subdomain werden automatisch erkannt</div>
+  <ul id="plist"></ul>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let apps=[
+ {n:'mein-spiel',t:'static',s:'ok',ttl:'Dauerhaft',p:100,perm:1,size:'4,2 MB',v:3,hits:[3,5,4,8,6,9,12,10,14,11]},
+ {n:'api-playground',t:'docker',s:'ok',ttl:'5 Std 40 Min',p:24,size:'38 MB',v:7,hits:[9,8,12,15,11,14,18,22,19,25]},
+ {n:'portfolio-neu',t:'static',s:'ok',ttl:'6 Tage',p:86,size:'1,8 MB',v:2,hits:[1,2,1,3,2,2,4,3,5,4]},
+ {n:'chat-demo',t:'docker',s:'build',ttl:'24 Std',p:100,size:'–',v:1,hits:[0,0,0,0,0,0,0,0,0,0]},
+ {n:'landing-test',t:'static',s:'ok',ttl:'48 Min',p:4,size:'320 KB',v:1,hits:[6,4,7,3,5,2,3,2,1,1]},
+ {n:'kassen-app',t:'docker',s:'error',ttl:'28 Tage',p:93,size:'61 MB',v:4,hits:[7,8,6,9,5,0,0,0,0,0]},
+ {n:'wiki-intern',t:'docker',s:'ok',ttl:'Dauerhaft',p:100,perm:1,size:'112 MB',v:12,hits:[20,22,19,25,24,27,30,26,29,31]},
+ {n:'umfrage-q3',t:'static',s:'ok',ttl:'2 Tage',p:28,size:'900 KB',v:1,hits:[2,3,2,5,8,9,6,4,3,2]},
+];
+const feed=[['14:08','<em>chat-demo</em> wird gebaut (v1)'],['13:52','<em>kassen-app</em> Container beendet, Exit-Code 1'],['12:30','<em>landing-test</em> läuft in 48 Min ab'],['11:05','<em>wiki-intern</em> auf v12 aktualisiert'],['09:41','<em>umfrage-q3</em> veröffentlicht']];
+const SL={ok:'Online',build:'Wird gebaut',error:'Fehler'};
+let flt='all',qs='';
+const isExp=a=>!a.perm&&a.p<30;
+const FL=[['all','Alle',a=>1],['static','Statisch',a=>a.t==='static'],['docker','Container',a=>a.t==='docker'],['exp','Läuft ab',isExp],['error','Fehler',a=>a.s==='error']];
+function spark(d,bad){const m=Math.max(...d,1),w=100,h=26,pts=d.map((v,i)=>`${i*w/(d.length-1)},${h-2-(v/m)*(h-6)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${bad?'var(--err)':'var(--accent)'}" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`}
+function render(){
+  $('#pills').innerHTML=FL.map(([k,l,f])=>`<button class="pill ${k===flt?'on':''}" data-f="${k}">${l}<b>${apps.filter(f).length}</b></button>`).join('');
+  const f=FL.find(x=>x[0]===flt)[2];
+  const list=apps.filter(a=>f(a)&&a.n.includes(qs.toLowerCase()));
+  $('#tbl').innerHTML=`<div class="tr th"><span>Name</span><span>Status</span><span>Typ</span><span>Restlaufzeit</span><span class="spk">Aufrufe 24 Std</span><span></span></div>`+
+   (list.map(a=>`<button class="tr" data-n="${a.n}"><div class="nm"><b>${a.n}</b><span>${a.n}.lspx.org</span></div><span class="st ${a.s}">${SL[a.s]}</span><span class="ty">${a.t==='docker'?'Container':'Statisch'}</span>
+   <div class="life"><span>${a.ttl}</span><div class="meter ${a.perm?'perm':a.p<30?'low':''}"><i style="width:${a.p}%"></i></div></div><div class="spk">${spark(a.hits,a.s==='error')}</div>
+   <div class="act"><span data-copy="${a.n}" role="button" aria-label="URL kopieren"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg></span></div></button>`).join('')||'<div style="padding:30px;text-align:center;color:var(--muted)">Keine Treffer</div>');
+  $('#b-ok').textContent=apps.filter(a=>a.s==='ok').length;$('#b-build').textContent=apps.filter(a=>a.s==='build').length;
+  $('#b-err').textContent=apps.filter(a=>a.s==='error').length;$('#b-exp').textContent=apps.filter(isExp).length;
+}
+$('#feed').innerHTML=feed.map(([t,h])=>`<li><time>${t}</time><span>${h}</span></li>`).join('');
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.i);toast.i=setTimeout(()=>t.classList.remove('on'),2000)}
+function openSide(n){const a=apps.find(x=>x.n===n);
+  $('#s-name').textContent=a.n;$('#s-st').innerHTML=`<span class="st ${a.s}">${SL[a.s]}</span>`;$('#s-url').textContent='https://'+a.n+'.lspx.org';
+  $('#s-rows').innerHTML=[['Typ',a.t==='docker'?'Container':'Statisch'],['Restlaufzeit',a.ttl],['Größe',a.size],['Version','v'+a.v],['Passwortschutz','aus']].map(([k,v])=>`<div class="row"><span>${k}</span><span>${v}</span></div>`).join('');
+  $('#side').classList.add('on');$('#side').setAttribute('aria-hidden','false');$$('.tr').forEach(r=>r.classList.toggle('sel',r.dataset.n===n))}
+function closeSide(){$('#side').classList.remove('on');$('#side').setAttribute('aria-hidden','true');$$('.tr').forEach(r=>r.classList.remove('sel'))}
+$('#tbl').onclick=e=>{const c=e.target.closest('[data-copy]');if(c){e.stopPropagation();navigator.clipboard?.writeText('https://'+c.dataset.copy+'.lspx.org').catch(()=>{});toast('URL kopiert');return}
+  const r=e.target.closest('.tr[data-n]');if(r)openSide(r.dataset.n)};
+$('#s-x').onclick=closeSide;
+$('#pills').onclick=e=>{const b=e.target.closest('.pill');if(b){flt=b.dataset.f;render()}};
+$('#q').oninput=e=>{qs=e.target.value;render()};
+$('#theme').onclick=()=>{const r=document.documentElement,c=r.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');r.dataset.theme=c==='dark'?'light':'dark'};
+
+/* Befehlsleiste */
+const cmds=[['Neues Deployment aus Datei','Strg U'],['Quick-Code-Editor öffnen','Strg E'],['API-Zugang erstellen',''],['KI-Prompt kopieren',''],['Passwort ändern','']];
+function pal(){const v=$('#pin').value.toLowerCase();
+  const hits=apps.filter(a=>a.n.includes(v)).map(a=>[a.n+'.lspx.org','App']).concat(cmds.filter(c=>c[0].toLowerCase().includes(v)));
+  $('#plist').innerHTML=hits.slice(0,7).map((h,i)=>`<li><button class="${i?'':'h'}" data-t="${h[0]}"><span>${h[0]}</span><small>${h[1]}</small></button></li>`).join('')}
+function openPal(){$('#scrim').classList.add('on');$('#pin').value='';pal();$('#pin').focus()}
+function closePal(){$('#scrim').classList.remove('on')}
+$('#open-pal').onclick=$('#new').onclick=openPal;
+$('#pin').oninput=pal;
+$('#scrim').onclick=e=>{if(e.target.id==='scrim')closePal();const b=e.target.closest('[data-t]');if(b){closePal();toast('Demo: '+b.dataset.t)}};
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openPal()}
+  if(e.key==='Escape'){closePal();closeSide()}
+});
+render();
+</script>
+
+</body>
+</html>
