@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SnapHost – Design-Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0d12; --bg-2:#12141b; --card:#161923; --card-2:#1b1f2b;
+  --line:#242836; --line-2:#2f3446;
+  --text:#eceef4; --muted:#9aa1b5; --faint:#646b80;
+  --accent:#c8ff4d; --accent-ink:#10140a; --accent-soft:rgba(200,255,77,.12);
+  --ok:#4ade80; --warn:#fbbf24; --err:#fb7185; --docker:#7dd3fc; --static:#c4b5fd;
+  --shadow:0 20px 50px -20px rgba(0,0,0,.7);
+  --display:'Space Grotesk',Inter,system-ui,sans-serif;
+  --sans:Inter,system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+[data-theme=light]{
+  --bg:#f5f4ef; --bg-2:#ecebe4; --card:#fff; --card-2:#faf9f5;
+  --line:#e3e1d8; --line-2:#d2cfc3;
+  --text:#16171c; --muted:#5d6272; --faint:#8a8f9e;
+  --accent:#16171c; --accent-ink:#c8ff4d; --accent-soft:rgba(22,23,28,.07);
+  --ok:#15803d; --warn:#b45309; --err:#be123c; --docker:#0369a1; --static:#6d28d9;
+  --shadow:0 20px 40px -24px rgba(40,35,20,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;
+  background-image:radial-gradient(900px 400px at 85% -10%,var(--accent-soft),transparent 70%)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.mono{font-family:var(--mono)}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+
+/* Topbar */
+.top{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:28px;height:62px}
+.logo{display:flex;align-items:center;gap:10px;font:700 19px var(--display);letter-spacing:-.02em}
+.logo i{width:28px;height:28px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}
+.nav{display:flex;gap:4px}
+.nav a{padding:7px 13px;border-radius:999px;color:var(--muted);font-weight:500;font-size:14px;transition:.15s}
+.nav a:hover{color:var(--text)}
+.nav a.on{background:var(--card);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.sp{flex:1}
+.domain{display:flex;align-items:center;gap:8px;font:12.5px var(--mono);color:var(--muted);padding:6px 12px;border:1px solid var(--line);border-radius:999px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:ping 2.2s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.icon-btn{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--muted);border:1px solid var(--line);transition:.15s}
+.icon-btn:hover{color:var(--text);border-color:var(--line-2)}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#c8ff4d,#4ade80);color:#10140a;font:700 14px var(--display);display:grid;place-items:center}
+
+/* Hero / Launcher */
+.hero{padding:56px 0 34px}
+.eyebrow{font:500 12.5px var(--mono);color:var(--accent);letter-spacing:.08em;text-transform:uppercase}
+[data-theme=light] .eyebrow{color:var(--muted)}
+h1{font:700 clamp(34px,5vw,54px)/1.04 var(--display);letter-spacing:-.035em;margin:10px 0 10px;max-width:16ch}
+h1 em{font-style:normal;background:var(--accent);color:var(--accent-ink);padding:0 .15em;border-radius:.18em}
+.lead{color:var(--muted);max-width:52ch;margin-bottom:28px}
+.launcher{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:10px;box-shadow:var(--shadow)}
+.drop{display:flex;align-items:center;gap:20px;padding:26px 28px;border:1.5px dashed var(--line-2);border-radius:14px;cursor:pointer;transition:.2s;background:var(--card-2)}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop .ic{width:54px;height:54px;border-radius:16px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none;transition:transform .2s}
+.drop:hover .ic,.drop.over .ic{transform:translateY(-3px) rotate(-4deg)}
+.drop b{display:block;font:600 18px var(--display);letter-spacing:-.01em}
+.drop span{color:var(--muted);font-size:13.5px}
+.drop .kbd{margin-left:auto;font:12px var(--mono);color:var(--faint);white-space:nowrap}
+.opts{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 8px 4px}
+.slug{display:flex;align-items:center;flex:1 1 260px;min-width:0;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:0 12px;height:44px;font:14px var(--mono)}
+.slug:focus-within{border-color:var(--accent)}
+.slug input{flex:1;min-width:0;background:none;border:0;color:var(--text);font:inherit;outline:0;text-align:right;padding-right:2px}
+.slug span{color:var(--faint)}
+.chips{display:flex;gap:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:4px}
+.chip{padding:0 12px;height:34px;border-radius:9px;font-size:13px;font-weight:500;color:var(--muted);transition:.15s}
+.chip:hover{color:var(--text)}
+.chip.on{background:var(--card);color:var(--text);box-shadow:inset 0 0 0 1px var(--line-2)}
+.btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border-radius:12px;font-weight:600;transition:.15s}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.btn-ghost{border:1px solid var(--line);color:var(--muted)}
+.btn-ghost:hover{color:var(--text);border-color:var(--line-2)}
+
+/* Stats strip */
+.stats{display:flex;flex-wrap:wrap;gap:0;margin:34px 0 8px;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
+.stat{flex:1 1 180px;padding:18px 22px;border-right:1px solid var(--line);display:flex;align-items:center;gap:14px}
+.stat:last-child{border:0}
+.stat strong{font:700 30px/1 var(--display);letter-spacing:-.03em}
+.stat small{display:block;color:var(--muted);font-size:12.5px;line-height:1.3}
+.bar{width:44px;height:4px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--accent)}
+
+/* Toolbar */
+.tool{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:36px 0 18px}
+.tool h2{font:700 24px var(--display);letter-spacing:-.02em;margin-right:auto}
+.tool h2 small{font:500 13px var(--mono);color:var(--faint);margin-left:8px}
+.search{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--faint);min-width:230px}
+.search input{flex:1;background:none;border:0;outline:0;color:var(--text);font:14px var(--sans)}
+.search kbd{font:11px var(--mono);border:1px solid var(--line-2);border-radius:5px;padding:1px 6px}
+.seg{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.seg button{height:30px;padding:0 12px;border-radius:7px;color:var(--muted);font-size:13px;font-weight:500}
+.seg button.on{background:var(--card-2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line-2)}
+
+/* Deployment cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px;padding-bottom:80px}
+.app{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;text-align:left;display:flex;flex-direction:column;animation:in .4s both}
+.app:hover{transform:translateY(-4px);border-color:var(--line-2);box-shadow:var(--shadow)}
+@keyframes in{from{opacity:0;transform:translateY(10px)}}
+.thumb{height:150px;position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.thumb .frame{position:absolute;left:18px;right:18px;top:18px;bottom:-30px;border-radius:10px 10px 0 0;background:rgba(255,255,255,.94);box-shadow:0 10px 30px rgba(0,0,0,.35);transition:transform .3s}
+.app:hover .frame{transform:translateY(-6px)}
+.frame .bar2{height:18px;display:flex;align-items:center;gap:4px;padding:0 8px;background:rgba(0,0,0,.06)}
+.frame .bar2 i{width:6px;height:6px;border-radius:50%;background:rgba(0,0,0,.22)}
+.frame .ph{padding:12px}
+.ph s{display:block;height:8px;border-radius:4px;background:rgba(0,0,0,.14);margin-bottom:7px;text-decoration:none}
+.ph s.h{height:14px;width:55%;background:rgba(0,0,0,.72);margin-bottom:10px}
+.ph s.b{height:22px;width:34%;margin-top:10px;background:var(--c)}
+.state{z-index:2;position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font:600 11.5px var(--sans);background:rgba(12,13,18,.78);color:#eceef4;backdrop-filter:blur(8px)}
+.state i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.state.build i{background:var(--warn);animation:ping 1.4s infinite;box-shadow:0 0 0 0 var(--warn)}
+.state.error i{background:var(--err)}
+.body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;align-items:center;gap:10px}
+.name{font:600 17px var(--display);letter-spacing:-.01em}
+.url{font:12.5px var(--mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{font:500 11.5px var(--mono);padding:2px 8px;border-radius:6px;border:1px solid var(--line-2);margin-left:auto;white-space:nowrap}
+.tag.docker{color:var(--docker)} .tag.static{color:var(--static)}
+.meta{display:flex;align-items:center;gap:14px;color:var(--faint);font-size:12.5px;padding-top:12px;border-top:1px solid var(--line)}
+.ttl{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.ring{--p:60;width:22px;height:22px;border-radius:50%;background:conic-gradient(var(--rc,var(--accent)) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center}
+.ring::after{content:"";width:14px;height:14px;border-radius:50%;background:var(--card)}
+.ring.low{--rc:var(--warn)} .ring.perm{--rc:var(--ok)}
+.copy{margin-left:auto;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--faint);transition:.15s}
+.copy:hover{background:var(--card-2);color:var(--text)}
+
+/* Drawer */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.25s;z-index:40;backdrop-filter:blur(2px)}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:var(--bg-2);border-left:1px solid var(--line);z-index:50;transform:translateX(102%);transition:transform .35s cubic-bezier(.2,.9,.25,1);display:flex;flex-direction:column;visibility:hidden}
+.drawer.on{transform:none;visibility:visible;box-shadow:-30px 0 60px -30px rgba(0,0,0,.6)}
+.dh{padding:22px 24px 0}
+.dh .t{display:flex;align-items:center;gap:12px}
+.dh h3{font:700 24px var(--display);letter-spacing:-.02em}
+.dh a.u{display:block;font:13px var(--mono);color:var(--accent);margin:6px 0 16px}
+[data-theme=light] .dh a.u{color:var(--text);text-decoration:underline}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);padding:0 24px}
+.tabs button{padding:12px 0;color:var(--muted);font-weight:500;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--text);border-color:var(--accent)}
+.dbody{padding:22px 24px;overflow:auto;flex:1}
+.pane{display:none}.pane.on{display:block}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.kv div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kv small{display:block;color:var(--faint);font-size:12px}
+.kv b{font:600 16px var(--display)}
+.term{background:#07080b;color:#c9d1e6;border:1px solid var(--line);border-radius:12px;padding:14px 16px;font:12.5px/1.7 var(--mono);overflow:auto}
+.term .ok{color:#4ade80}.term .d{color:#646b80}.term .w{color:#fbbf24}
+.tl{list-style:none;border-left:1px solid var(--line-2);margin-left:6px}
+.tl li{position:relative;padding:0 0 18px 20px}
+.tl li::before{content:"";position:absolute;left:-5px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--line-2)}
+.tl li:first-child::before{background:var(--accent)}
+.tl small{color:var(--faint);display:block;font-size:12px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.field input,.field select{width:100%;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:0 12px;font:14px var(--mono)}
+.danger{margin-top:26px;padding:16px;border:1px solid color-mix(in srgb,var(--err) 40%,transparent);border-radius:12px;display:flex;align-items:center;gap:14px}
+.danger p{flex:1;font-size:13px;color:var(--muted)}
+.danger button{height:36px;padding:0 14px;border-radius:9px;border:1px solid var(--err);color:var(--err);font-weight:600;font-size:13px}
+.dfoot{padding:16px 24px;border-top:1px solid var(--line);display:flex;gap:10px}
+.dfoot .btn{height:40px;flex:1;justify-content:center}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,30px);opacity:0;background:var(--text);color:var(--bg);padding:11px 18px;border-radius:12px;font-weight:600;font-size:14px;z-index:99;transition:.3s;display:flex;gap:10px;align-items:center;box-shadow:var(--shadow)}
+.toast.on{transform:translate(-50%,0);opacity:1}
+
+@media(max-width:760px){
+  .nav,.domain{display:none}
+  .drop{flex-direction:column;text-align:center}.drop .kbd{margin:0}
+  .search{min-width:0;flex:1}
+  .stat{flex-basis:50%;border-bottom:1px solid var(--line)}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <a class="logo" href="#"><i><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h8l-1 8 10-12h-8z"/></svg></i>SnapHost</a>
+  <nav class="nav">
+    <a class="on" href="#">Deployments</a><a href="#">API-Zugänge</a><a href="#">KI-Prompt</a><a href="#">Einstellungen</a>
+  </nav>
+  <span class="sp"></span>
+  <div class="domain"><span class="dot"></span>*.lspx.org</div>
+  <button class="icon-btn" id="theme" title="Hell/Dunkel" aria-label="Theme wechseln">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+  <div class="avatar">A</div>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="eyebrow">Ziehen. Ablegen. Live.</div>
+    <h1>Von der Datei zur <em>URL</em> in Sekunden.</h1>
+    <p class="lead">ZIP, HTML oder Node-App – SnapHost erkennt den Typ selbst und veröffentlicht unter deiner Subdomain.</p>
+
+    <div class="launcher">
+      <label class="drop" id="drop" tabindex="0">
+        <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg></span>
+        <div><b>ZIP oder .html hier ablegen</b><span>oder klicken zum Durchsuchen · Quick-Code-Editor über <span class="mono">Strg + E</span></span></div>
+        <span class="kbd">max. 100 MB</span>
+        <input type="file" hidden id="file">
+      </label>
+      <div class="opts">
+        <div class="slug"><span>https://</span><input id="slug" placeholder="mein-spiel" aria-label="Subdomain"><span>.lspx.org</span></div>
+        <div class="chips" role="group" aria-label="Gültigkeit">
+          <button class="chip" data-t="1h">1 Std</button><button class="chip on" data-t="24h">24 Std</button><button class="chip" data-t="7d">7 Tage</button><button class="chip" data-t="30d">30 Tage</button><button class="chip" data-t="∞">Dauerhaft</button>
+        </div>
+        <button class="btn btn-primary" id="deploy">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h8l-1 8 10-12h-8z"/></svg>Bereitstellen
+        </button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><strong id="s-total">0</strong><div><small>Live</small><div class="bar"><i style="width:100%"></i></div></div></div>
+      <div class="stat"><strong id="s-static">0</strong><div><small>Statische Seiten</small><div class="bar"><i id="b-static"></i></div></div></div>
+      <div class="stat"><strong id="s-docker">0</strong><div><small>Container</small><div class="bar"><i id="b-docker"></i></div></div></div>
+      <div class="stat"><strong id="s-exp" style="color:var(--warn)">0</strong><div><small>Laufen in &lt; 24 Std ab</small></div></div>
+    </div>
+  </section>
+
+  <div class="tool">
+    <h2>Deployments<small id="count"></small></h2>
+    <div class="seg" id="filter">
+      <button class="on" data-f="all">Alle</button><button data-f="static">Statisch</button><button data-f="docker">Container</button><button data-f="exp">Ablaufend</button>
+    </div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" placeholder="Suchen…" aria-label="Suchen"><kbd>/</kbd>
+    </label>
+  </div>
+  <section class="grid" id="grid"></section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="dh">
+    <div class="t"><h3 id="d-name"></h3><span class="tag" id="d-tag" style="margin-left:0"></span><span class="sp"></span>
+      <button class="icon-btn" id="close" aria-label="Schließen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+    <a class="u" id="d-url" href="#"></a>
+  </div>
+  <div class="tabs" id="tabs"><button class="on" data-p="o">Übersicht</button><button data-p="l">Logs</button><button data-p="v">Versionen</button><button data-p="s">Einstellungen</button></div>
+  <div class="dbody">
+    <div class="pane on" id="p-o">
+      <div class="kv" id="d-kv"></div>
+      <div class="term"><span class="d">$</span> snaphost status<br><span class="ok">✓</span> Proxy erreichbar <span class="d">· 12 ms</span><br><span class="ok">✓</span> Zertifikat gültig <span class="d">· Cloudflare Origin</span><br><span class="ok">✓</span> Health-Check bestanden</div>
+    </div>
+    <div class="pane" id="p-l"><div class="term"><span class="d">14:02:11</span> npm install<br><span class="d">14:02:19</span> <span class="ok">added 142 packages</span><br><span class="d">14:02:20</span> docker build -t snap-app .<br><span class="d">14:02:34</span> <span class="ok">Container gestartet</span> <span class="d">127.0.0.1:49213</span><br><span class="d">14:02:35</span> <span class="w">WARN</span> PORT nicht gesetzt, nutze 3000<br><span class="d">14:02:36</span> <span class="ok">Listening on :3000</span></div></div>
+    <div class="pane" id="p-v"><ul class="tl"><li><b>v3 · aktiv</b><small>vor 2 Std · mein-spiel.zip · 4,2 MB</small></li><li><b>v2</b><small>gestern · mein-spiel.zip · 4,0 MB</small></li><li><b>v1</b><small>vor 3 Tagen · mein-spiel.zip · 3,1 MB</small></li></ul></div>
+    <div class="pane" id="p-s">
+      <div class="field"><label>Subdomain</label><input value="mein-spiel" readonly></div>
+      <div class="field"><label>Gültigkeit</label><select><option>24 Stunden</option><option>7 Tage</option><option>Dauerhaft</option></select></div>
+      <div class="field"><label>Passwortschutz</label><input placeholder="Optional"></div>
+      <div class="danger"><p>Löscht das Deployment und alle Versionen unwiderruflich.</p><button>Löschen</button></div>
+    </div>
+  </div>
+  <div class="dfoot"><a class="btn btn-primary" href="#">Seite öffnen ↗</a><button class="btn btn-ghost">Neu starten</button></div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const colors=['#c8ff4d','#7dd3fc','#c4b5fd','#fda4af','#fcd34d','#6ee7b7'];
+let apps=[
+ {n:'mein-spiel',t:'static',s:'ok',h:2,ttl:'∞',p:100,size:'4,2 MB',v:3},
+ {n:'api-playground',t:'docker',s:'ok',h:5,ttl:'6 Std',p:25,size:'38 MB',v:7},
+ {n:'portfolio-neu',t:'static',s:'ok',h:26,ttl:'7 Tage',p:86,size:'1,8 MB',v:2},
+ {n:'chat-demo',t:'docker',s:'build',h:0,ttl:'24 Std',p:100,size:'—',v:1},
+ {n:'landing-test',t:'static',s:'ok',h:9,ttl:'1 Std',p:12,size:'320 KB',v:1},
+ {n:'kassen-app',t:'docker',s:'error',h:48,ttl:'30 Tage',p:70,size:'61 MB',v:4},
+];
+let filter='all',query='',ttl='24h';
+const lbl={ok:'Online',build:'Wird gebaut',error:'Fehler'};
+const ago=h=>h===0?'gerade eben':h<24?`vor ${h} Std`:`vor ${Math.round(h/24)} Tagen`;
+
+function render(){
+  const list=apps.filter(a=>(filter==='all'||(filter==='exp'?a.p<30&&a.ttl!=='∞':a.t===filter))&&a.n.includes(query.toLowerCase()));
+  $('#grid').innerHTML=list.map((a,i)=>{
+    const c=colors[[...a.n].reduce((x,y)=>x+y.charCodeAt(0),0)%colors.length];
+    const ring=a.ttl==='∞'?'perm':a.p<30?'low':'';
+    return `<button class="app" style="animation-delay:${i*50}ms" data-n="${a.n}">
+      <div class="thumb" style="background:linear-gradient(140deg,${c}33,${c}08 70%),var(--card-2);--c:${c}">
+        <span class="state ${a.s}"><i></i>${lbl[a.s]}</span>
+        <div class="frame"><div class="bar2"><i></i><i></i><i></i></div><div class="ph"><s class="h"></s><s></s><s style="width:80%"></s><s style="width:62%"></s><s class="b"></s></div></div>
+      </div>
+      <div class="body">
+        <div class="row"><span class="name">${a.n}</span><span class="tag ${a.t}">${a.t==='docker'?'Container':'Statisch'}</span></div>
+        <div class="url">${a.n}.lspx.org</div>
+        <div class="meta"><span class="ttl"><span class="ring ${ring}" style="--p:${a.ttl==='∞'?100:a.p}"></span>${a.ttl==='∞'?'Dauerhaft':a.ttl+' übrig'}</span><span>v${a.v} · ${ago(a.h)}</span>
+        <span class="copy" data-copy="${a.n}" role="button" aria-label="URL kopieren"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg></span></div>
+      </div></button>`}).join('')||'<p style="color:var(--muted);grid-column:1/-1;padding:40px 0;text-align:center">Keine Treffer.</p>';
+  $('#count').textContent=list.length+' / '+apps.length;
+  const st=apps.filter(a=>a.t==='static').length, dk=apps.length-st;
+  $('#s-total').textContent=apps.length;$('#s-static').textContent=st;$('#s-docker').textContent=dk;
+  $('#s-exp').textContent=apps.filter(a=>a.p<30&&a.ttl!=='∞').length;
+  $('#b-static').style.width=st/apps.length*100+'%';$('#b-docker').style.width=dk/apps.length*100+'%';
+}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.i);toast.i=setTimeout(()=>t.classList.remove('on'),2200)}
+function open(n){
+  const a=apps.find(x=>x.n===n);
+  $('#d-name').textContent=a.n;$('#d-tag').textContent=a.t==='docker'?'Container':'Statisch';$('#d-tag').className='tag '+a.t;
+  $('#d-url').textContent='https://'+a.n+'.lspx.org';
+  $('#d-kv').innerHTML=[['Status',lbl[a.s]],['Laufzeit',a.ttl==='∞'?'Dauerhaft':a.ttl+' übrig'],['Größe',a.size],['Version','v'+a.v]].map(([k,v])=>`<div><small>${k}</small><b>${v}</b></div>`).join('');
+  $('#drawer').classList.add('on');$('#scrim').classList.add('on');$('#drawer').setAttribute('aria-hidden','false');
+}
+function close(){$('#drawer').classList.remove('on');$('#scrim').classList.remove('on');$('#drawer').setAttribute('aria-hidden','true')}
+
+$('#grid').addEventListener('click',e=>{
+  const c=e.target.closest('[data-copy]');
+  if(c){e.stopPropagation();navigator.clipboard?.writeText(`https://${c.dataset.copy}.lspx.org`);toast('URL kopiert');return}
+  const a=e.target.closest('.app');if(a)open(a.dataset.n);
+});
+$('#scrim').onclick=$('#close').onclick=close;
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')close();
+  if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();$('#q').focus()}
+});
+$('#filter').onclick=e=>{const b=e.target.closest('button');if(!b)return;$$('#filter button').forEach(x=>x.classList.toggle('on',x===b));filter=b.dataset.f;render()};
+$('#q').oninput=e=>{query=e.target.value;render()};
+$('.chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;$$('.chip').forEach(x=>x.classList.toggle('on',x===b));ttl=b.dataset.t};
+$('#tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;$$('#tabs button').forEach(x=>x.classList.toggle('on',x===b));$$('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p))};
+$('#theme').onclick=()=>{const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark'};
+
+let fileName='';
+const drop=$('#drop');
+['dragenter','dragover'].forEach(v=>drop.addEventListener(v,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(v=>drop.addEventListener(v,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>pick(e.dataTransfer.files[0]));
+$('#file').onchange=e=>pick(e.target.files[0]);
+function pick(f){if(!f)return;fileName=f.name.replace(/\.(zip|html?)$/i,'').toLowerCase().replace(/[^a-z0-9]+/g,'-');$('#slug').value=fileName;drop.querySelector('b').textContent=f.name;toast('Datei bereit – Subdomain vorgeschlagen')}
+$('#deploy').onclick=()=>{
+  let n=$('#slug').value.trim()||'neues-projekt',base=n,i=2;
+  while(apps.some(a=>a.n===n))n=base+'-'+i++;
+  apps.unshift({n,t:'static',s:'build',h:0,ttl:ttl==='∞'?'∞':ttl.replace('h',' Std').replace('d',' Tage'),p:100,size:'—',v:1});
+  render();toast('⚡ '+n+'.lspx.org wird veröffentlicht');
+  setTimeout(()=>{const a=apps.find(x=>x.n===n);a.s='ok';render()},2200);
+  $('#slug').value='';
+};
+render();
+</script>
+</body>
+</html>
