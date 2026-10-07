@@ -65,6 +65,14 @@ export const staticService = {
       reqPath += 'index.html';
     }
 
+    // Never serve dotfiles/dot-directories (.env, .git, ...). Only /.well-known is allowed.
+    const hasHiddenSegment = reqPath
+      .split(/[\\/]+/)
+      .some((seg) => seg.startsWith('.') && seg !== '.well-known' && seg !== '.' && seg !== '..');
+    if (hasHiddenSegment) {
+      return res.status(404).send('Not Found');
+    }
+
     let filePath = path.normalize(path.join(root, reqPath));
 
     // Security check: Prevent directory traversal
