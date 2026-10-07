@@ -32,7 +32,7 @@ if [[ "$PATH_ARG" == *.html || "$PATH_ARG" == *.htm ]]; then
 else
     UPLOAD_FILE="/tmp/deploy_$RANDOM.zip"
     echo "Packe $PATH_ARG in Archiv..."
-    (cd "$PATH_ARG" && zip -q -r "$UPLOAD_FILE" . -x "node_modules/*" ".git/*")
+    (cd "$PATH_ARG" && zip -q -r "$UPLOAD_FILE" . -x "node_modules/*" ".git/*" ".env" ".env.*" "*/.env" "*/.env.*")
 fi
 
 echo "Lade zu $SERVER hoch..."

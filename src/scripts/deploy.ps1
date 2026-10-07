@@ -30,7 +30,24 @@ if ($isHtml) {
 } else {
     $uploadFile = Join-Path $env:TEMP "deploy_$(Get-Random).zip"
     Write-Host "Erstelle Archiv von '$Path'..." -ForegroundColor Cyan
-    Compress-Archive -Path (Join-Path $Path "*") -DestinationPath $uploadFile -Force
+    # Stage files without node_modules, .git and .env* so secrets are never uploaded
+    $stageDir = Join-Path $env:TEMP "deploy_stage_$(Get-Random)"
+    New-Item -ItemType Directory -Path $stageDir | Out-Null
+    $srcRoot = (Resolve-Path $Path).Path.TrimEnd('\')
+    Get-ChildItem -Path $srcRoot -Recurse -Force -File | Where-Object {
+        $rel = $_.FullName.Substring($srcRoot.Length).TrimStart('\')
+        ($rel -notmatch '(^|\\)(node_modules|\.git)(\\|$)') -and ($_.Name -notmatch '^\.env(\..*)?$')
+    } | ForEach-Object {
+        $rel = $_.FullName.Substring($srcRoot.Length).TrimStart('\')
+        $target = Join-Path $stageDir $rel
+        New-Item -ItemType Directory -Path (Split-Path $target) -Force | Out-Null
+        Copy-Item -LiteralPath $_.FullName -Destination $target
+    }
+    try {
+        Compress-Archive -Path (Join-Path $stageDir "*") -DestinationPath $uploadFile -Force
+    } finally {
+        Remove-Item $stageDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 Write-Host "Lade zu $Server hoch..." -ForegroundColor Cyan

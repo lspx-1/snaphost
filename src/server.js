@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import http from 'http';
 import path from 'path';
@@ -50,6 +51,21 @@ function resolveSubdomain(hostHeader) {
   return null;
 }
 
+// Basic Auth check for password-protected apps (shared by HTTP and WebSocket upgrade)
+function hasValidAppPassword(req, appRecord) {
+  if (!appRecord.password) return true;
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Basic ')) return false;
+
+  const decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
+  const idx = decoded.indexOf(':');
+  const pw = idx >= 0 ? decoded.slice(idx + 1) : decoded;
+
+  const given = crypto.createHash('sha256').update(pw).digest();
+  const expected = crypto.createHash('sha256').update(String(appRecord.password)).digest();
+  return crypto.timingSafeEqual(given, expected);
+}
+
 // -------------------------------------------------------------
 // Core Request Handler (Routing between Apps and Dashboard)
 // -------------------------------------------------------------
@@ -77,19 +93,9 @@ app.use(async (req, res, next) => {
     }
 
     // Password Protection / Basic Auth
-    if (appRecord.password) {
-      const authHeader = req.headers.authorization || '';
-      let isAuthed = false;
-      if (authHeader.startsWith('Basic ')) {
-        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
-        const idx = decoded.indexOf(':');
-        const pw = idx >= 0 ? decoded.slice(idx + 1) : decoded;
-        if (pw === appRecord.password) isAuthed = true;
-      }
-      if (!isAuthed) {
-        res.setHeader('WWW-Authenticate', 'Basic realm="Geschützte Seite", charset="UTF-8"');
-        return res.status(401).send('Passwort erforderlich');
-      }
+    if (!hasValidAppPassword(req, appRecord)) {
+      res.setHeader('WWW-Authenticate', 'Basic realm="Geschützte Seite", charset="UTF-8"');
+      return res.status(401).send('Passwort erforderlich');
     }
 
     appDb.touchApp(appRecord.id);
@@ -217,6 +223,16 @@ server.on('upgrade', (req, socket, head) => {
 
   const appRecord = appDb.getAppBySubdomain(subdomain);
   if (appRecord && appRecord.type === 'docker' && appRecord.status === 'running') {
+    if (!hasValidAppPassword(req, appRecord)) {
+      socket.write(
+        'HTTP/1.1 401 Unauthorized\r\n' +
+        'WWW-Authenticate: Basic realm="Geschützte Seite", charset="UTF-8"\r\n' +
+        'Connection: close\r\n' +
+        'Content-Length: 0\r\n\r\n'
+      );
+      socket.destroy();
+      return;
+    }
     proxyService.proxyWs(req, socket, head, appRecord);
   } else {
     socket.destroy();
