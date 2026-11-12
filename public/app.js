@@ -2178,6 +2178,122 @@ document.getElementById('nav-item-settings')?.addEventListener('click', () => {
 });
 
 // -------------------------------------------------------------
+// MCP-Server Einrichtung (Befehl / Config zum Kopieren)
+// -------------------------------------------------------------
+const mcpState = {
+  client: 'claude',                                            // claude | json
+  mode: 'local',                                               // local | remote
+  os: /Windows/i.test(navigator.userAgent) ? 'win' : 'unix',   // win | unix
+  token: null                                                  // frisch erzeugter Schlüssel (nur im Speicher)
+};
+const MCP_TOKEN_PLACEHOLDER = 'sh_live_DEIN_TOKEN';
+
+// JSON mit 2er-Einrückung, aber kurze Arrays (args) in einer Zeile
+const mcpJson = (obj) => JSON.stringify(obj, null, 2)
+  .replace(/\[\n\s+([^[\]{}]*?)\n\s*\]/g, (_, inner) => `[${inner.split(/,\n\s+/).join(', ')}]`);
+
+function buildMcpSnippet() {
+  const server = window.location.origin;
+  const token = mcpState.token || MCP_TOKEN_PLACEHOLDER;
+  const pkg = `github:${systemInfo?.repo || 'lspx-1/snaphost'}`;
+
+  if (mcpState.mode === 'local') {
+    // npx lädt das CLI direkt aus GitHub – kein lokaler Checkout nötig, immer aktueller main-Stand
+    const cmd = mcpState.os === 'win' ? ['cmd', '/c', 'npx', '-y', pkg, 'mcp'] : ['npx', '-y', pkg, 'mcp'];
+    if (mcpState.client === 'claude') {
+      return `claude mcp add snaphost -s user -e SNAPHOST_SERVER=${server} -e SNAPHOST_TOKEN=${token} -- ${cmd.join(' ')}`;
+    }
+    return mcpJson({
+      mcpServers: { snaphost: { command: cmd[0], args: cmd.slice(1), env: { SNAPHOST_SERVER: server, SNAPHOST_TOKEN: token } } }
+    });
+  }
+
+  if (mcpState.client === 'claude') {
+    return `claude mcp add snaphost -s user --transport http ${server}/mcp --header "Authorization: Bearer ${token}"`;
+  }
+  return mcpJson({
+    mcpServers: { snaphost: { url: `${server}/mcp`, headers: { Authorization: `Bearer ${token}` } } }
+  });
+}
+
+function renderMcpPanel() {
+  const { client, mode, os } = mcpState;
+  for (const [id, value] of [['mcp-client-switcher', client], ['mcp-mode-switcher', mode], ['mcp-os-switcher', os]]) {
+    document.querySelectorAll(`#${id} .segment-btn`).forEach(b => b.classList.toggle('active', b.dataset.value === value));
+  }
+  document.getElementById('mcp-os-option').classList.toggle('hidden', mode !== 'local');
+  document.getElementById('mcp-remove-hint').classList.toggle('hidden', client !== 'claude');
+  document.getElementById('mcp-config-hint').classList.toggle('hidden', client !== 'json');
+
+  const repo = systemInfo?.repo || 'lspx-1/snaphost';
+  document.getElementById('mcp-mode-hint').innerHTML = mode === 'local'
+    ? `Startet SnapHost per <code>npx</code> direkt aus <code>github.com/${escapeHtml(repo)}</code> – kein Repo-Ordner nötig, immer auf dem aktuellen Stand. Kann lokale Ordner direkt deployen. Voraussetzung: Node.js 22+. Der erste Start dauert ca. 20 Sekunden.`
+    : `Verbindet sich direkt mit <code>${escapeHtml(window.location.origin)}/mcp</code>, ohne lokale Installation. Dateien werden als Inhalt mitgeschickt – für größere Projekte besser „Lokal“.${client === 'json' ? ' <strong>Claude Desktop</strong> unterstützt dieses Format nicht, dort „Lokal“ nutzen.' : ''}`;
+
+  document.getElementById('mcp-step-install-title').textContent = client === 'claude'
+    ? 'Im Terminal ausführen'
+    : 'In die Config einfügen';
+
+  document.getElementById('mcp-verify-hint').innerHTML = client === 'claude'
+    ? 'Claude Code neu starten oder <code>/mcp</code> eingeben – <strong>snaphost</strong> sollte als „connected“ erscheinen. Dann einfach fragen, zum Beispiel:'
+    : 'Programm neu starten – <strong>snaphost</strong> erscheint in der Tool-Liste. Dann einfach fragen, zum Beispiel:';
+
+  document.getElementById('mcp-snippet').textContent = buildMcpSnippet();
+}
+
+function bindMcpSwitcher(id, key) {
+  document.querySelectorAll(`#${id} .segment-btn`).forEach(btn => {
+    btn.addEventListener('click', () => {
+      mcpState[key] = btn.dataset.value;
+      renderMcpPanel();
+    });
+  });
+}
+bindMcpSwitcher('mcp-client-switcher', 'client');
+bindMcpSwitcher('mcp-mode-switcher', 'mode');
+bindMcpSwitcher('mcp-os-switcher', 'os');
+
+document.getElementById('nav-item-mcp')?.addEventListener('click', () => {
+  renderMcpPanel();
+  document.getElementById('modal-mcp').classList.remove('hidden');
+});
+
+document.getElementById('btn-mcp-copy')?.addEventListener('click', () => {
+  if (!mcpState.token && !confirm('Der Befehl enthält noch den Platzhalter statt eines echten API-Schlüssels. Trotzdem kopieren?')) return;
+  copyToClipboard(buildMcpSnippet(), mcpState.client === 'claude' ? 'Befehl kopiert' : 'Konfiguration kopiert');
+});
+
+document.getElementById('btn-mcp-copy-remove')?.addEventListener('click', () => {
+  copyToClipboard(document.getElementById('mcp-remove-snippet').textContent, 'Befehl kopiert');
+});
+
+document.getElementById('btn-mcp-create-key')?.addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  const label = mcpState.client === 'claude' ? 'Claude Code' : 'Cursor / Claude Desktop';
+  const name = `MCP – ${label} (${new Date().toLocaleDateString('de-DE')})`;
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    const data = await res.json();
+    if (!data.success || !data.key?.rawToken) throw new Error(data.error || 'Fehler beim Erzeugen');
+    mcpState.token = data.key.rawToken;
+    document.getElementById('mcp-key-status').innerHTML =
+      `<span style="color:var(--status-active);font-weight:500;">✓ Schlüssel „${escapeHtml(name)}“ erzeugt und unten eingesetzt.</span> Er wird nur jetzt angezeigt – widerrufen kannst du ihn unter API-Zugänge.`;
+    btn.textContent = 'Weiteren erzeugen';
+    renderMcpPanel();
+    showToast('API-Schlüssel erzeugt und eingesetzt', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// -------------------------------------------------------------
 // Administrator Password Change Modal
 // -------------------------------------------------------------
 window.openChangePasswordModal = function() {

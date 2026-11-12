@@ -170,21 +170,30 @@ Nach erfolgreichem Deployment ist das Projekt unter `https://<slug>.DEINE_SNAPHO
 
 SnapHost spricht das **Model Context Protocol**. KI-Clients bekommen damit direkte Tools wie `deploy`, `list_apps`, `get_logs`, `rollback_app` statt Shell-Befehlen.
 
+> **Am einfachsten:** Im Dashboard links auf **MCP-Server** klicken. Dort Programm, Verbindung und System wählen, einen API-Schlüssel erzeugen und den fertigen Befehl bzw. die Config kopieren.
+
 ### A. Lokal (empfohlen – kann Ordner direkt vom Rechner deployen)
-Startet `snaphost mcp` als stdio-Server. Zugangsdaten kommen aus `snaphost login` bzw. `SNAPHOST_TOKEN` / `SNAPHOST_SERVER`.
+Startet `snaphost mcp` als stdio-Server per `npx` direkt aus dem GitHub-Repo – kein lokaler Checkout nötig, immer der aktuelle `main`-Stand (Node.js 22+). Zugangsdaten kommen aus `SNAPHOST_TOKEN` / `SNAPHOST_SERVER` oder, falls nicht gesetzt, aus `snaphost login` (`~/.snaphost/config.json`).
 
 ```bash
-# Claude Code
-claude mcp add snaphost -- node /pfad/zu/snaphost/bin/snaphost.js mcp
+# Claude Code – Windows (cmd /c ist für npx unter Windows nötig)
+claude mcp add snaphost -s user -e SNAPHOST_SERVER=https://DEINE_SNAPHOST_DOMAIN -e SNAPHOST_TOKEN=sh_live_... -- cmd /c npx -y github:lspx-1/snaphost mcp
+
+# Claude Code – macOS / Linux
+claude mcp add snaphost -s user -e SNAPHOST_SERVER=https://DEINE_SNAPHOST_DOMAIN -e SNAPHOST_TOKEN=sh_live_... -- npx -y github:lspx-1/snaphost mcp
+
+# Neu einrichten: vorher entfernen
+claude mcp remove snaphost -s user
 ```
 
 ```json
-// Cursor (.cursor/mcp.json) / Claude Desktop (claude_desktop_config.json)
+// Cursor (~/.cursor/mcp.json) / Claude Desktop – unter macOS/Linux "command": "npx", "args": ["-y", "github:lspx-1/snaphost", "mcp"]
 {
   "mcpServers": {
     "snaphost": {
-      "command": "node",
-      "args": ["/pfad/zu/snaphost/bin/snaphost.js", "mcp"]
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "github:lspx-1/snaphost", "mcp"],
+      "env": { "SNAPHOST_SERVER": "https://DEINE_SNAPHOST_DOMAIN", "SNAPHOST_TOKEN": "sh_live_..." }
     }
   }
 }
@@ -195,7 +204,7 @@ Der Server bietet `POST https://DEINE_SNAPHOST_DOMAIN/mcp` (Streamable HTTP). Au
 
 ```bash
 # Claude Code
-claude mcp add --transport http snaphost https://DEINE_SNAPHOST_DOMAIN/mcp --header "Authorization: Bearer sh_live_..."
+claude mcp add snaphost -s user --transport http https://DEINE_SNAPHOST_DOMAIN/mcp --header "Authorization: Bearer sh_live_..."
 ```
 
 ```json

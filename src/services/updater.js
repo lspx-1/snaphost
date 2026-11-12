@@ -33,15 +33,15 @@ async function git(...args) {
 const runningSha = await git('rev-parse', 'HEAD').catch(() => null);
 const startedAt = new Date().toISOString();
 
-export function getVersion() {
-  return { sha: runningSha, branch: BRANCH, startedAt };
-}
-
 // Erlaubtes Repo: UPDATE_REPO oder aus der eigenen origin-URL (github.com/owner/repo)
 let allowedRepo = process.env.UPDATE_REPO || null;
 if (!allowedRepo) {
   const url = await git('remote', 'get-url', 'origin').catch(() => '');
   allowedRepo = url.match(/github\.com[:/]([^/\s]+\/[^/\s]+?)(?:\.git)?\/?$/i)?.[1] || null;
+}
+
+export function getVersion() {
+  return { sha: runningSha, branch: BRANCH, startedAt, repo: allowedRepo };
 }
 
 // -------------------------------------------------------------

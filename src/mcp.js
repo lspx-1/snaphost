@@ -377,6 +377,11 @@ export function createMcpServer({ api, local = null }) {
   async function callTool(name, args) {
     const tool = byName.get(name);
     if (!tool) throw Object.assign(new Error(`Unbekanntes Tool: ${name}`), { code: -32602 });
+    const missing = (tool.inputSchema.required || []).filter((k) => args?.[k] === undefined || args?.[k] === null || args?.[k] === '');
+    if (missing.length) {
+      const hint = missing.map((k) => `"${k}"${tool.inputSchema.properties[k]?.description ? ` (${tool.inputSchema.properties[k].description})` : ''}`);
+      return { content: [{ type: 'text', text: `Fehler: Pflichtfeld fehlt: ${hint.join(', ')}` }], isError: true };
+    }
     try {
       const result = await tool.handler(args || {}, { api });
       const text = typeof result === 'string' ? result : JSON.stringify(result, null, 2);

@@ -8,6 +8,7 @@ import { deployerService } from '../services/deployer.js';
 import { dockerService } from '../services/docker.js';
 import { requireAuth } from '../middleware/auth.js';
 import { sanitizeSubdomain } from '../utils/slug.js';
+import { getVersion } from '../services/updater.js';
 import AdmZip from 'adm-zip';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -690,6 +691,8 @@ apiRouter.get('/info', requireAuth, (req, res) => {
     dockerAvailable: dockerService.isAvailable,
     defaultTtl: config.defaultTtl,
     deployEndpoint: deployUrl,
-    sampleApiKey: sampleKey
+    sampleApiKey: sampleKey,
+    repo: getVersion().repo, // GitHub-Repo (owner/name) für `npx github:<repo>` im MCP-Panel
+    version: getVersion().sha
   });
 });
