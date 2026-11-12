@@ -163,3 +163,56 @@ Die SnapHost CLI liest Zugangsdaten automatisch aus der lokalen Konfiguration (`
   *(Alternativ über Umgebungsvariablen: `SNAPHOST_SERVER=https://DEINE_SNAPHOST_DOMAIN` und `SNAPHOST_TOKEN=<token>`)*
 
 Nach erfolgreichem Deployment ist das Projekt unter `https://<slug>.DEINE_SNAPHOST_DOMAIN` erreichbar.
+
+---
+
+## 🧩 7. MCP-Server (Claude Code, Cursor, Claude Desktop & Co.)
+
+SnapHost spricht das **Model Context Protocol**. KI-Clients bekommen damit direkte Tools wie `deploy`, `list_apps`, `get_logs`, `rollback_app` statt Shell-Befehlen.
+
+### A. Lokal (empfohlen – kann Ordner direkt vom Rechner deployen)
+Startet `snaphost mcp` als stdio-Server. Zugangsdaten kommen aus `snaphost login` bzw. `SNAPHOST_TOKEN` / `SNAPHOST_SERVER`.
+
+```bash
+# Claude Code
+claude mcp add snaphost -- node /pfad/zu/snaphost/bin/snaphost.js mcp
+```
+
+```json
+// Cursor (.cursor/mcp.json) / Claude Desktop (claude_desktop_config.json)
+{
+  "mcpServers": {
+    "snaphost": {
+      "command": "node",
+      "args": ["/pfad/zu/snaphost/bin/snaphost.js", "mcp"]
+    }
+  }
+}
+```
+
+### B. Remote (ohne lokale Installation)
+Der Server bietet `POST https://DEINE_SNAPHOST_DOMAIN/mcp` (Streamable HTTP). Authentifizierung per API-Key. Dateien werden hier als Inhalt übergeben (`files` / `html`), lokale Pfade gehen nicht.
+
+```bash
+# Claude Code
+claude mcp add --transport http snaphost https://DEINE_SNAPHOST_DOMAIN/mcp --header "Authorization: Bearer sh_live_..."
+```
+
+```json
+// Cursor
+{ "mcpServers": { "snaphost": { "url": "https://DEINE_SNAPHOST_DOMAIN/mcp", "headers": { "Authorization": "Bearer sh_live_..." } } } }
+```
+
+> claude.ai im Browser unterstützt bei eigenen Connectoren nur OAuth – dafür ist der Remote-Endpunkt (noch) nicht ausgelegt.
+
+### Verfügbare Tools
+| Tool | Zweck |
+| --- | --- |
+| `deploy` | Projekt hochladen (`path` nur lokal, `files`, `html`), gibt die URL zurück. Bestehender `slug` → Update |
+| `list_apps`, `get_app` | Übersicht, Details & Versionsverlauf |
+| `get_logs` | Build-/Container-Logs (erste Anlaufstelle bei Fehlern) |
+| `update_app` | Subdomain, TTL, Titel, Passwort, SPA ändern |
+| `restart_app`, `stop_app`, `rebuild_app`, `rollback_app` | Lifecycle |
+| `get_data`, `query_table`, `reset_data` | Persistentes `/data`-Volume & SQLite |
+| `delete_app` | Endgültig löschen |
+| `pull_source` | Quellcode herunterladen & entpacken (nur lokal) |

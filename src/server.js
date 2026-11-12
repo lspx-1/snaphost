@@ -13,6 +13,8 @@ import { janitor } from './services/janitor.js';
 import { dockerService } from './services/docker.js';
 import { authRouter } from './routes/auth.js';
 import { apiRouter } from './routes/api.js';
+import { requireAuth } from './middleware/auth.js';
+import { createHttpHandler } from './mcp.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,6 +131,14 @@ app.use(express.urlencoded({ extended: true, limit: `${config.maxUploadSizeBytes
 // Routes for Dashboard and API
 app.use('/auth', authRouter);
 app.use('/api', apiRouter);
+
+// MCP-Endpunkt (Model Context Protocol) für KI-Clients: Tools rufen die REST-API per Loopback auf
+const loopbackHost = ['0.0.0.0', '::', ''].includes(config.host) ? '127.0.0.1' : config.host;
+const mcpHandler = createHttpHandler({
+  apiBaseUrl: `http://${loopbackHost.includes(':') ? `[${loopbackHost}]` : loopbackHost}:${config.port}`
+});
+app.post('/mcp', requireAuth, mcpHandler);
+app.all('/mcp', (req, res) => res.set('Allow', 'POST').status(405).json({ error: 'Nur POST wird unterstützt (zustandsloser MCP-Server).' }));
 
 // Helper to resolve admin/server URL vs apps root domain
 function getServerUrls() {

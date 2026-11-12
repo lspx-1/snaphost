@@ -130,6 +130,34 @@ async function extractZipBuffer(buffer, destinationDir) {
 }
 
 // -------------------------------------------------------------
+// Helper: Resolve deploy target (auto-detect dist/build/out) and pack it
+// Shared by "deploy" and the MCP server, so it must not print to stdout.
+// -------------------------------------------------------------
+async function packTarget(inputPath = '.') {
+  if (!fs.existsSync(inputPath)) {
+    throw new Error(`Pfad "${inputPath}" existiert nicht.`);
+  }
+
+  let target = inputPath;
+  let detected = null;
+  if (fs.statSync(target).isDirectory()) {
+    for (const dir of ['dist', 'build', 'out']) {
+      if (fs.existsSync(path.join(target, dir, 'index.html'))) {
+        detected = dir;
+        target = path.join(target, dir);
+        break;
+      }
+    }
+  }
+
+  const isHtml = fs.statSync(target).isFile() && target.toLowerCase().endsWith('.html');
+  const buffer = isHtml ? fs.readFileSync(target) : await createZipBuffer(target);
+  // Name the upload after the project folder (not "dist"), so the subdomain is derived from it
+  const filename = isHtml ? path.basename(target) : `${path.basename(path.resolve(inputPath)) || 'bundle'}.zip`;
+  return { buffer, filename, target: path.resolve(target), detected };
+}
+
+// -------------------------------------------------------------
 // CLI Commands
 // -------------------------------------------------------------
 async function cmdLogin(args, flags) {
@@ -198,35 +226,21 @@ async function cmdDeploy(args, flags) {
     process.exit(1);
   }
 
-  // Target path
-  let target = args[0] || '.';
-  if (!fs.existsSync(target)) {
-    console.error(`❌ Pfad "${target}" existiert nicht.`);
+  let packed;
+  try {
+    packed = await packTarget(args[0] || '.');
+  } catch (err) {
+    console.error(`❌ ${err.message}`);
     process.exit(1);
   }
+  const { buffer, filename, target, detected } = packed;
 
-  // Auto-detect build output folder if running in root of Vite/React/Next project
-  if (fs.statSync(target).isDirectory()) {
-    if (fs.existsSync(path.join(target, 'dist', 'index.html'))) {
-      console.log('💡 Build-Ordner "dist/" automatisch erkannt.');
-      target = path.join(target, 'dist');
-    } else if (fs.existsSync(path.join(target, 'build', 'index.html'))) {
-      console.log('💡 Build-Ordner "build/" automatisch erkannt.');
-      target = path.join(target, 'build');
-    } else if (fs.existsSync(path.join(target, 'out', 'index.html'))) {
-      console.log('💡 Export-Ordner "out/" automatisch erkannt.');
-      target = path.join(target, 'out');
-    }
-  }
-
-  console.log(`⚡ Packe Projekt aus: ${path.resolve(target)}...`);
-  const isHtml = fs.statSync(target).isFile() && target.toLowerCase().endsWith('.html');
-  const buffer = isHtml ? fs.readFileSync(target) : await createZipBuffer(target);
+  if (detected) console.log(`💡 Build-Ordner "${detected}/" automatisch erkannt.`);
+  console.log(`⚡ Packe Projekt aus: ${target}...`);
   const sizeMb = (buffer.length / 1024 / 1024).toFixed(2);
   console.log(`📦 Archiv-Größe: ${sizeMb} MB. Lade hoch zu ${server}/api/deploy...`);
 
   const formData = new FormData();
-  const filename = isHtml ? path.basename(target) : `${path.basename(path.resolve(target)) || 'bundle'}.zip`;
   formData.append('file', new Blob([buffer]), filename);
 
   if (flags.slug) formData.append('slug', flags.slug);
@@ -654,6 +668,27 @@ async function cmdData(args, flags) {
   }
 }
 
+async function cmdMcp(args, flags) {
+  // stdout gehört ab hier dem MCP-Protokoll – Hinweise nur nach stderr.
+  const { server, token } = resolveCredentials(flags);
+  const { createApiClient, createMcpServer, runStdio } = await import('../src/mcp.js');
+  if (!token) {
+    console.error('[snaphost mcp] Warnung: Kein API-Token gefunden ("snaphost login" oder SNAPHOST_TOKEN). Tools werden mit 401 antworten.');
+  }
+  const api = createApiClient(server, token ? { Authorization: `Bearer ${token}` } : {});
+  runStdio(createMcpServer({
+    api,
+    local: {
+      pack: packTarget,
+      extract: async (buffer, dir) => {
+        fs.mkdirSync(dir, { recursive: true });
+        await extractZipBuffer(buffer, dir);
+      }
+    }
+  }));
+  console.error(`[snaphost mcp] MCP-Server (stdio) bereit – Server: ${server}`);
+}
+
 function showHelp() {
   console.log(`
 ⚡ SnapHost CLI - Das offizielle Terminal-Werkzeug
@@ -679,6 +714,7 @@ BEFEHLE:
   login              API-Token & Server einmalig sicher lokal abspeichern
   logout             Gespeicherte Zugangsdaten löschen
   whoami             Aktuellen Login- und Serverstatus anzeigen
+  mcp                MCP-Server (stdio) für Claude Code, Cursor & Co. starten
 
 FLAGS:
   --slug <name>      Wunsch-Subdomain festlegen (Standard: abgeleitet aus Ordner/Datei)
@@ -781,6 +817,9 @@ async function main() {
       break;
     case 'open':
       await cmdOpen(positional, flags);
+      break;
+    case 'mcp':
+      await cmdMcp(positional, flags);
       break;
     case 'help':
     case '--help':
