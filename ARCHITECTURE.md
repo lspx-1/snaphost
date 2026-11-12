@@ -150,6 +150,7 @@ git push origin main
 ```
 
 ### Auf dem Proxmox-Server (`root@snaphost`):
+Updates laufen automatisch: Push/Merge auf `main` → `.github/workflows/deploy.yml` → `POST /api/system/update` (GitHub-OIDC, kein Secret) → `src/services/updater.js` macht `git pull --ff-only`, ggf. `npm install` und beendet den Prozess; systemd startet ihn neu. Laufende Version: `GET /api/system/version`. Manuell geht es weiterhin so:
 ```bash
 # 1-Klick Update ausführen:
 cd /opt/snaphost && ./update.sh
