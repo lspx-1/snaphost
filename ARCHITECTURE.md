@@ -68,6 +68,7 @@ WEB2/
 │   ├── server.js         # HTTP Server, Host-Routing (resolveSubdomain), CLI-Skript-Routen
 │   ├── config.js         # Zentrale Konfiguration (Ports, Pfade, Domains, TTL)
 │   ├── db.js             # SQLite Datenbankanbindung (node:sqlite DatabaseSync) & Migrationen
+│   ├── mcp.js            # MCP-Server: Tools für KI-Clients (stdio via `snaphost mcp`, HTTP via POST /mcp)
 │   │
 │   ├── routes/
 │   │   ├── api.js        # REST API (/api/deploy, /api/apps, /api/apps/:id/*)
