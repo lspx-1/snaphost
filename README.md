@@ -7,7 +7,7 @@
 * ⏱️ **Ablaufdatum (TTL):** Automatische Bereinigung nach 1h, 24h, 7d oder dauerhafte Links.
 * ✏️ **Smarte Subdomains:** Automatisch aus Dateiname abgeleitet (z. B. `mein-spiel.zip` -> `mein-spiel`), Zufalls-Slugs oder eigene Wunsch-Namen.
 * 🤖 **KI-Schnittstelle:** Mit nur einem cURL-Befehl lädt jede KI (Claude, Cursor, Antigravity, ChatGPT) fertige Projekte direkt hoch.
-* 🧩 **MCP-Server:** Claude Code, Cursor & Co. bekommen direkte Tools (`deploy`, `get_logs`, `rollback_app` …) – lokal per `snaphost mcp` oder remote über `/mcp`. Einrichtung: [DEPLOY-CLI.md](./DEPLOY-CLI.md#-7-mcp-server-claude-code-cursor-claude-desktop--co).
+* 🧩 **MCP-Server:** Claude Code, Cursor & Co. bekommen direkte Tools (`deploy`, `get_logs`, `rollback_app` …) – lokal per `npx github:lspx-1/snaphost mcp` oder remote über `/mcp`. Einrichtung per Klick im Dashboard (**MCP-Server**) oder in [DEPLOY-CLI.md](./DEPLOY-CLI.md#-7-mcp-server-claude-code-cursor-claude-desktop--co).
 * 🎛️ **Admin-Dashboard:** Übersicht mit Login, Drag & Drop Upload, Live-Logs, API-Keys und Link-Management.
 
 > 📖 **Architektur & Entwickler-Handbuch:** Siehe [ARCHITECTURE.md](./ARCHITECTURE.md) für den vollständigen Systemaufbau, Designentscheidungen und Verbesserungsideen.  
