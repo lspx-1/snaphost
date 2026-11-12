@@ -1,0 +1,74 @@
+# Auto-Deploy: Jeder Push auf main (auch ein gemergter Pull Request) aktualisiert den Server.
+# Die Action weist sich mit einem von GitHub signierten OIDC-Token aus – kein Secret nötig.
+# Der Server prüft Repo + Branch, macht git pull / npm install und startet über systemd neu.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: snaphost-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SNAPHOST_URL: ${{ vars.SNAPHOST_URL || 'https://run.lspx.org' }}
+    steps:
+      - name: Server aktualisieren
+        run: |
+          set -euo pipefail
+
+          oidc() {
+            curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=snaphost-deploy" | jq -r .value
+          }
+
+          echo "Fordere Update auf ${GITHUB_SHA:0:7} an ($SNAPHOST_URL) ..."
+          rm -f resp.json
+          status=$(curl -sS -o resp.json -w '%{http_code}' --max-time 300 \
+            -X POST "$SNAPHOST_URL/api/system/update" \
+            -H "Authorization: Bearer $(oidc)" \
+            -H "Content-Type: application/json" \
+            -d "{\"sha\":\"$GITHUB_SHA\"}") || status="000"
+          cat resp.json 2>/dev/null || true
+          echo
+
+          if [ "$status" = "404" ]; then
+            echo "::error::Der Server kennt /api/system/update noch nicht. Einmalig auf dem Server 'cd /opt/snaphost && ./update.sh' ausführen – danach läuft jedes Update automatisch."
+            exit 1
+          fi
+          if [ "$status" != "200" ]; then
+            echo "::error::Update fehlgeschlagen (HTTP $status)."
+            exit 1
+          fi
+          if [ "$(jq -r .containsRequested resp.json)" != "true" ]; then
+            echo "::error::Der Server hat $GITHUB_SHA nach dem Pull nicht im Stand."
+            exit 1
+          fi
+
+          target=$(jq -r .after resp.json)
+          if [ "$(jq -r .restarting resp.json)" = "true" ]; then
+            echo "Server startet neu, warte auf ${target:0:7} ..."
+          fi
+
+          for i in $(seq 1 36); do
+            running=$(curl -sS --max-time 10 "$SNAPHOST_URL/api/system/version" \
+              -H "Authorization: Bearer $(oidc)" 2>/dev/null | jq -r '.sha // empty' 2>/dev/null || true)
+            if [ "$running" = "$target" ]; then
+              echo "✓ Server läuft auf ${target:0:7}"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "::error::Server läuft nach 3 Minuten nicht auf ${target:0:7} (aktuell: ${running:-nicht erreichbar}). Auf dem Server prüfen: journalctl -u snaphost -n 50"
+          exit 1

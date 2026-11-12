@@ -70,6 +70,19 @@ Fertig! Dein SnapHost Dashboard ist nun unter `https://apps.deinedomain.de` (ode
 
 ---
 
+## 🔄 Automatische Updates (GitHub Actions)
+
+Jeder Push auf `main` – also auch jeder gemergte Pull Request – aktualisiert den Server automatisch:
+
+1. `.github/workflows/deploy.yml` ruft `POST https://run.lspx.org/api/system/update` auf.
+2. Die Action weist sich mit einem von GitHub signierten **OIDC-Token** aus. Es gibt **kein Secret**: Der Server prüft Signatur, Repo (aus seiner eigenen `origin`-URL) und Branch `main`. Forks und andere Branches werden abgelehnt.
+3. Der Server macht `git pull --ff-only`, bei geänderter `package.json` auch `npm install --omit=dev`, und beendet sich. systemd (`Restart=always`) startet ihn mit dem neuen Code.
+4. Die Action wartet, bis `/api/system/version` den neuen Commit meldet – erst dann ist sie grün.
+
+**Einmalige Einrichtung:** Nach dem Merge dieser Funktion einmal manuell `cd /opt/snaphost && ./update.sh` ausführen. Ab dann läuft alles automatisch. Schlägt ein Update fehl (z. B. lokale Änderungen auf dem Server), wird die Action rot und der Server läuft auf dem alten Stand weiter. Manuell erneut auslösen: GitHub → Actions → *Deploy* → *Run workflow*.
+
+---
+
 ## 🤖 3. Die KI-Schnittstelle nutzen
 
 In diesem Verzeichnis liegt die Datei **`DEPLOY.md`**.

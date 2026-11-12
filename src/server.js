@@ -10,6 +10,7 @@ import { appDb } from './db.js';
 import { staticService } from './services/static.js';
 import { proxyService } from './services/proxy.js';
 import { janitor } from './services/janitor.js';
+import { systemRouter } from './routes/system.js';
 import { dockerService } from './services/docker.js';
 import { authRouter } from './routes/auth.js';
 import { apiRouter } from './routes/api.js';
@@ -127,6 +128,9 @@ app.use(express.static(publicDir, {
 // Body parsers for SnapHost Dashboard & Management API (placed AFTER subdomain proxy)
 app.use(express.json({ limit: `${config.maxUploadSizeBytes || 250 * 1024 * 1024}b` }));
 app.use(express.urlencoded({ extended: true, limit: `${config.maxUploadSizeBytes || 250 * 1024 * 1024}b` }));
+
+// Auto-Deploy & laufende Version (aufgerufen von .github/workflows/deploy.yml)
+app.use('/api/system', systemRouter);
 
 // Routes for Dashboard and API
 app.use('/auth', authRouter);

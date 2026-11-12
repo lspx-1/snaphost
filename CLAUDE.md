@@ -9,6 +9,7 @@ For comprehensive system architecture, network topology, design decisions, and f
 - **Server Location:** `/opt/snaphost` on Proxmox LXC (`root@snaphost`)
 - **Service:** `systemd` unit `snaphost.service` running Node.js on port 3000
 - **Reverse Proxy:** Nginx Proxy Manager (NPM) with 15-year Cloudflare Origin Certificate
+- **Updates:** Automatic. Every push/merge to `main` runs `.github/workflows/deploy.yml`, which calls `POST /api/system/update` with a GitHub OIDC token (no shared secret; repo + branch checked in `src/services/updater.js`). The server pulls, installs deps if `package.json` changed, and exits so systemd restarts it. Never leave uncommitted changes in `/opt/snaphost` – they block `git pull --ff-only`.
 
 ## Key Rules for AI & Developers
 1. **Subdomains:** Dashboard is `run.lspx.org`. Never send API requests to `lspx.org` directly; always use `https://run.lspx.org/api/...`.
